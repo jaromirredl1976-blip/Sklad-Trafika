@@ -15,7 +15,18 @@ export default function App() {
     const saved = localStorage.getItem("znacky");
     return saved ? JSON.parse(saved) : ["Veev"];
   });
+  useEffect(() => {
+  localStorage.setItem("sklad", JSON.stringify(items));
+}, [items]);
 
+useEffect(() => {
+  localStorage.setItem("kategorie", JSON.stringify(categories));
+}, [categories]);
+
+useEffect(() => {
+  localStorage.setItem("znacky", JSON.stringify(brands));
+}, [brands]);
+  
   const [newCategory, setNewCategory] = useState("");
   const [newBrand, setNewBrand] = useState("");
 
