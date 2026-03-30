@@ -26,14 +26,20 @@ export default function App() {
   }, []);
 
   return (
-    <div style={{ color: "white", padding: "20px" }}>
-      <h1>Sklad Trafika</h1>
+  <div>
+    <h1>Sklad Trafika</h1>
 
-      {items.map((item) => (
-        <div key={item.id}>
-          {item.nazev} | {item.ks} ks | {item.cena} Kč
-        </div>
-      ))}
-    </div>
-  );
-}
+    {items.length === 0 ? (
+      <p>Žádná data</p>
+    ) : (
+      <ul>
+        {items.map((item) => (
+          <li key={item.id}>
+            {item.nazev} - {item.kategorie} - {item.znacka} - {item.ks} ks - {item.cena} Kč
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+);
+      
