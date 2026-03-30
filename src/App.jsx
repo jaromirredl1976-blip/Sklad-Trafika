@@ -9,6 +9,7 @@ const supabase = createClient(
 export default function App() {
   const [items, setItems] = useState([]);
 
+  // načtení dat ze Supabase
   useEffect(() => {
     async function loadData() {
       const { data, error } = await supabase
@@ -26,20 +27,20 @@ export default function App() {
   }, []);
 
   return (
-  <div>
-    <h1>Sklad Trafika</h1>
+    <div>
+      <h1>Sklad Trafika</h1>
 
-    {items.length === 0 ? (
-      <p>Žádná data</p>
-    ) : (
-      <ul>
-        {items.map((item) => (
-          <li key={item.id}>
-            {item.nazev} - {item.kategorie} - {item.znacka} - {item.ks} ks - {item.cena} Kč
-          </li>
-        ))}
-      </ul>
-    )}
-  </div>
-);
-      
+      {items.length === 0 ? (
+        <p>Žádná data</p>
+      ) : (
+        <ul>
+          {items.map((item) => (
+            <li key={item.id}>
+              {item.nazev} - {item.kategorie} - {item.znacka} - {item.ks} ks - {item.cena} Kč
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
