@@ -23,56 +23,84 @@ export default function App() {
     loadAll();
   }, []);
 
+  // 🔥 NAČTENÍ DAT
   async function loadAll() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("sklad")
       .select(`
         *,
-        kategorie(name),
-        znacka(name)
+        kategorie(id, name),
+        znacka(id, name)
       `);
 
-    const { data: kat } = await supabase.from("kategorie").select("*");
-    const { data: zn } = await supabase.from("znacky").select("*");
+    if (error) console.error("Chyba sklad:", error);
+
+    const { data: kat, error: errKat } = await supabase
+      .from("kategorie")
+      .select("*");
+
+    if (errKat) console.error("Chyba kategorie:", errKat);
+
+    const { data: zn, error: errZn } = await supabase
+      .from("znacky")
+      .select("*");
+
+    if (errZn) console.error("Chyba znacky:", errZn);
 
     setItems(data || []);
     setKategorieList(kat || []);
     setZnackyList(zn || []);
   }
 
+  // 🔥 ADD / UPDATE
   async function addOrUpdateItem() {
     if (!nazev) return;
 
     const payload = {
       nazev,
-      kategorie,
-      znacka,
-      ks: Number(ks),
-      cena: Number(cena),
+      kategorie: kategorie || null,
+      znacka: znacka || null,
+      ks: Number(ks) || 0,
+      cena: Number(cena) || 0,
     };
 
     if (editId) {
-      await supabase.from("sklad").update(payload).eq("id", editId);
+      const { error } = await supabase
+        .from("sklad")
+        .update(payload)
+        .eq("id", editId);
+
+      if (error) console.error("Update chyba:", error);
       setEditId(null);
     } else {
-      await supabase.from("sklad").insert([payload]);
+      const { error } = await supabase.from("sklad").insert([payload]);
+
+      if (error) console.error("Insert chyba:", error);
     }
 
     clearForm();
     loadAll();
   }
 
+  // 🔥 EDIT (FIX)
   function editItem(item) {
     setEditId(item.id);
     setNazev(item.nazev);
-    setKategorie(item.kategorie);
-    setZnacka(item.znacka);
+
+    // MUSÍ být ID
+    setKategorie(item.kategorie?.id || "");
+    setZnacka(item.znacka?.id || "");
+
     setKs(item.ks);
     setCena(item.cena);
   }
 
+  // 🔥 DELETE
   async function deleteItem(id) {
-    await supabase.from("sklad").delete().eq("id", id);
+    const { error } = await supabase.from("sklad").delete().eq("id", id);
+
+    if (error) console.error("Delete chyba:", error);
+
     loadAll();
   }
 
@@ -84,38 +112,74 @@ export default function App() {
     setCena("");
   }
 
+  // 🔥 výpočet hodnoty skladu
+  const totalValue = items.reduce(
+    (sum, item) => sum + item.ks * item.cena,
+    0
+  );
+
   return (
     <div style={{ padding: 20 }}>
       <h1>Sklad</h1>
 
-      <input placeholder="Název" value={nazev} onChange={e => setNazev(e.target.value)} />
+      <input
+        placeholder="Název"
+        value={nazev}
+        onChange={(e) => setNazev(e.target.value)}
+      />
 
-      <select value={kategorie} onChange={e => setKategorie(e.target.value)}>
+      <select
+        value={kategorie}
+        onChange={(e) => setKategorie(e.target.value)}
+      >
         <option value="">Kategorie</option>
-        {kategorieList.map(k => (
-          <option key={k.id} value={k.id}>{k.name}</option>
+        {kategorieList.map((k) => (
+          <option key={k.id} value={k.id}>
+            {k.name}
+          </option>
         ))}
       </select>
 
-      <select value={znacka} onChange={e => setZnacka(e.target.value)}>
+      <select value={znacka} onChange={(e) => setZnacka(e.target.value)}>
         <option value="">Značka</option>
-        {znackyList.map(z => (
-          <option key={z.id} value={z.id}>{z.name}</option>
+        {znackyList.map((z) => (
+          <option key={z.id} value={z.id}>
+            {z.name}
+          </option>
         ))}
       </select>
 
-      <input placeholder="Ks" value={ks} onChange={e => setKs(e.target.value)} />
-      <input placeholder="Cena" value={cena} onChange={e => setCena(e.target.value)} />
+      <input
+        placeholder="Ks"
+        type="number"
+        value={ks}
+        onChange={(e) => setKs(e.target.value)}
+      />
+
+      <input
+        placeholder="Cena"
+        type="number"
+        value={cena}
+        onChange={(e) => setCena(e.target.value)}
+      />
 
       <button onClick={addOrUpdateItem}>
-        {editId ? "Uložit" : "Přidat"}
+        {editId ? "Uložit změny" : "Přidat"}
       </button>
 
       <hr />
 
-      {items.map(item => (
-        <div key={item.id}>
-          {item.nazev} – {item.kategorie?.name} – {item.znacka?.name} – {item.ks} ks – {item.cena} Kč
+      <h3>Počet položek: {items.length}</h3>
+      <h3>Hodnota skladu: {totalValue} Kč</h3>
+
+      <hr />
+
+      {items.map((item) => (
+        <div key={item.id} style={{ marginBottom: 10 }}>
+          <b>{item.nazev}</b> – {item.kategorie?.name || "-"} –{" "}
+          {item.znacka?.name || "-"} – {item.ks} ks – {item.cena} Kč
+
+          <br />
 
           <button onClick={() => editItem(item)}>Edit</button>
           <button onClick={() => deleteItem(item.id)}>Smazat</button>
