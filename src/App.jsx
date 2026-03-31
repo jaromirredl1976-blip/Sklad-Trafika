@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
+import { Pencil, Trash2, Plus, Search } from "lucide-react";
 
 const supabase = createClient(
   "https://jqddbwciekvfppfdpivk.supabase.co",
@@ -30,11 +31,7 @@ export default function App() {
   async function loadData() {
     const { data: items } = await supabase
       .from("sklad")
-      .select(`
-        *,
-        kategorie(name),
-        znacka(name)
-      `)
+      .select(`*, kategorie(name), znacka(name)`)
       .order("id", { ascending: false });
 
     const { data: kat } = await supabase.from("kategorie").select("*");
@@ -44,10 +41,6 @@ export default function App() {
     setKategorie(kat || []);
     setZnacky(zn || []);
   }
-
-  // ===============================
-  // CRUD SKLAD
-  // ===============================
 
   async function saveItem() {
     if (!nazev) return;
@@ -93,10 +86,7 @@ export default function App() {
     setCena("");
   }
 
-  // ===============================
-  // KATEGORIE
-  // ===============================
-
+  // Kategorie
   async function addKategorie() {
     if (!newKat) return;
     await supabase.from("kategorie").insert([{ name: newKat }]);
@@ -116,10 +106,7 @@ export default function App() {
     loadData();
   }
 
-  // ===============================
-  // ZNAČKY
-  // ===============================
-
+  // Značky
   async function addZnacka() {
     if (!newZn) return;
     await supabase.from("znacky").insert([{ name: newZn }]);
@@ -139,81 +126,87 @@ export default function App() {
     loadData();
   }
 
-  // ===============================
-  // FILTER
-  // ===============================
-
   const filtered = items.filter((i) =>
     i.nazev.toLowerCase().includes(search.toLowerCase())
   );
 
   const total = items.reduce((sum, i) => sum + i.ks * i.cena, 0);
 
-  // ===============================
-  // UI
-  // ===============================
+  const input = {
+    padding: "10px",
+    borderRadius: "8px",
+    border: "1px solid #2a2a2a",
+    background: "#0f172a",
+    color: "white",
+    width: "100%",
+    marginBottom: "10px",
+  };
+
+  const btn = {
+    padding: "8px 12px",
+    borderRadius: "8px",
+    border: "none",
+    cursor: "pointer",
+    background: "#3b82f6",
+    color: "white",
+  };
+
+  const btnIcon = {
+    padding: "6px",
+    marginLeft: "6px",
+    borderRadius: "6px",
+    border: "none",
+    cursor: "pointer",
+    background: "#1f2937",
+    color: "white",
+  };
 
   return (
-    <div style={{ maxWidth: 600, margin: "auto", padding: 20 }}>
-      <h1>Sklad</h1>
+    <div style={{ maxWidth: 700, margin: "auto", padding: 20 }}>
+      <h1 style={{ textAlign: "center" }}>Sklad</h1>
 
-      <input
-        placeholder="🔍 Hledat..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      {/* SEARCH */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Search size={18} />
+        <input
+          style={input}
+          placeholder="Hledat..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
-      <input
-        placeholder="Název"
-        value={nazev}
-        onChange={(e) => setNazev(e.target.value)}
-      />
+      {/* FORM */}
+      <input style={input} placeholder="Název" value={nazev} onChange={e => setNazev(e.target.value)} />
 
-      <select value={katId} onChange={(e) => setKatId(e.target.value)}>
+      <select style={input} value={katId} onChange={e => setKatId(e.target.value)}>
         <option value="">Kategorie</option>
-        {kategorie.map((k) => (
-          <option key={k.id} value={k.id}>
-            {k.name}
-          </option>
+        {kategorie.map(k => (
+          <option key={k.id} value={k.id}>{k.name}</option>
         ))}
       </select>
 
-      <input
-        placeholder="Nová kategorie"
-        value={newKat}
-        onChange={(e) => setNewKat(e.target.value)}
-      />
-      <button onClick={addKategorie}>+ Kat</button>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input style={input} placeholder="Nová kategorie" value={newKat} onChange={e => setNewKat(e.target.value)} />
+        <button style={btn} onClick={addKategorie}><Plus size={16} /></button>
+      </div>
 
-      <select value={znId} onChange={(e) => setZnId(e.target.value)}>
+      <select style={input} value={znId} onChange={e => setZnId(e.target.value)}>
         <option value="">Značka</option>
-        {znacky.map((z) => (
-          <option key={z.id} value={z.id}>
-            {z.name}
-          </option>
+        {znacky.map(z => (
+          <option key={z.id} value={z.id}>{z.name}</option>
         ))}
       </select>
 
-      <input
-        placeholder="Nová značka"
-        value={newZn}
-        onChange={(e) => setNewZn(e.target.value)}
-      />
-      <button onClick={addZnacka}>+ Zn</button>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input style={input} placeholder="Nová značka" value={newZn} onChange={e => setNewZn(e.target.value)} />
+        <button style={btn} onClick={addZnacka}><Plus size={16} /></button>
+      </div>
 
-      <input
-        placeholder="Ks"
-        value={ks}
-        onChange={(e) => setKs(e.target.value)}
-      />
+      <input style={input} placeholder="Ks" value={ks} onChange={e => setKs(e.target.value)} />
+      <input style={input} placeholder="Cena" value={cena} onChange={e => setCena(e.target.value)} />
 
-      <input
-        placeholder="Cena"
-        value={cena}
-        onChange={(e) => setCena(e.target.value)}
-      />
-
-      <button onClick={saveItem}>
+      <button style={{ ...btn, width: "100%" }} onClick={saveItem}>
         {editId ? "Uložit" : "Přidat"}
       </button>
 
@@ -225,35 +218,55 @@ export default function App() {
       <hr />
 
       {/* ITEMS */}
-      {filtered.map((item) => (
-        <div key={item.id} style={{ marginBottom: 10 }}>
-          {item.nazev} – {item.kategorie?.name} – {item.znacka?.name} – {item.ks} ks – {item.cena} Kč
+      {filtered.map(item => (
+        <div key={item.id} style={{
+          background: "#0f172a",
+          padding: 10,
+          borderRadius: 8,
+          marginBottom: 10
+        }}>
+          <div>{item.nazev}</div>
+          <div style={{ fontSize: 12, opacity: 0.7 }}>
+            {item.kategorie?.name} • {item.znacka?.name}
+          </div>
+          <div>{item.ks} ks • {item.cena} Kč</div>
 
-          <div>
-            <button onClick={() => editItem(item)}>✏️</button>
-            <button onClick={() => deleteItem(item.id)}>❌</button>
+          <div style={{ marginTop: 6 }}>
+            <button style={btnIcon} onClick={() => editItem(item)}>
+              <Pencil size={14} />
+            </button>
+            <button style={btnIcon} onClick={() => deleteItem(item.id)}>
+              <Trash2 size={14} />
+            </button>
           </div>
         </div>
       ))}
 
-      <hr />
-
       {/* KATEGORIE */}
       <h3>Kategorie</h3>
-      {kategorie.map((k) => (
-        <div key={k.id}>
-          {k.name}
-          <button onClick={() => editKategorie(k.id, k.name)}>✏️</button>
-          <button onClick={() => deleteKategorie(k.id)}>❌</button>
+      {kategorie.map(k => (
+        <div key={k.id} style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
+          <span style={{ flex: 1 }}>{k.name}</span>
+          <button style={btnIcon} onClick={() => editKategorie(k.id, k.name)}>
+            <Pencil size={14} />
+          </button>
+          <button style={btnIcon} onClick={() => deleteKategorie(k.id)}>
+            <Trash2 size={14} />
+          </button>
         </div>
       ))}
 
+      {/* ZNAČKY */}
       <h3>Značky</h3>
-      {znacky.map((z) => (
-        <div key={z.id}>
-          {z.name}
-          <button onClick={() => editZnacka(z.id, z.name)}>✏️</button>
-          <button onClick={() => deleteZnacka(z.id)}>❌</button>
+      {znacky.map(z => (
+        <div key={z.id} style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
+          <span style={{ flex: 1 }}>{z.name}</span>
+          <button style={btnIcon} onClick={() => editZnacka(z.id, z.name)}>
+            <Pencil size={14} />
+          </button>
+          <button style={btnIcon} onClick={() => deleteZnacka(z.id)}>
+            <Trash2 size={14} />
+          </button>
         </div>
       ))}
     </div>
