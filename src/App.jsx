@@ -8,6 +8,9 @@ const supabase = createClient(
 
 export default function App() {
   const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
+
   const [search, setSearch] = useState("");
 
   const [nazev, setNazev] = useState("");
@@ -16,36 +19,33 @@ export default function App() {
   const [ks, setKs] = useState("");
   const [cena, setCena] = useState("");
 
-  const [kategorieList, setKategorieList] = useState([]);
-  const [znackyList, setZnackyList] = useState([]);
-
   const [editId, setEditId] = useState(null);
 
   useEffect(() => {
     loadData();
-    loadLists();
+    loadCategories();
+    loadBrands();
   }, []);
 
+  // 📦 SKLAD
   async function loadData() {
     const { data, error } = await supabase.from("sklad").select("*");
-
-    if (error) {
-      console.error(error);
-      setItems([]);
-      return;
-    }
-
-    setItems(data || []);
+    if (!error) setItems(data);
   }
 
-  async function loadLists() {
-    const { data: kat } = await supabase.from("kategorie").select("*");
-    const { data: zn } = await supabase.from("znacky").select("*");
-
-    setKategorieList(kat || []);
-    setZnackyList(zn || []);
+  // 📂 KATEGORIE
+  async function loadCategories() {
+    const { data, error } = await supabase.from("kategorie").select("*");
+    if (!error) setCategories(data);
   }
 
+  // 🏷️ ZNAČKY
+  async function loadBrands() {
+    const { data, error } = await supabase.from("znacky").select("*");
+    if (!error) setBrands(data);
+  }
+
+  // ➕ ADD / UPDATE
   async function addOrUpdateItem() {
     if (!nazev || !kategorie || !znacka) {
       alert("Vyplň všechny údaje");
@@ -71,11 +71,13 @@ export default function App() {
     loadData();
   }
 
+  // ❌ DELETE
   async function deleteItem(id) {
     await supabase.from("sklad").delete().eq("id", id);
     loadData();
   }
 
+  // ✏️ EDIT
   function editItem(item) {
     setEditId(item.id);
     setNazev(item.nazev || "");
@@ -93,14 +95,14 @@ export default function App() {
     setCena("");
   }
 
-  const filtered = items
-    .filter((i) =>
-      (i.nazev || "").toLowerCase().includes(search.toLowerCase())
-    )
-    .sort((a, b) => (a.nazev || "").localeCompare(b.nazev || ""));
+  // 🔍 FILTER
+  const filtered = items.filter((i) =>
+    i.nazev.toLowerCase().includes(search.toLowerCase())
+  );
 
+  // 💰 SUMA
   const totalValue = items.reduce(
-    (sum, i) => sum + (Number(i.ks) || 0) * (Number(i.cena) || 0),
+    (sum, i) => sum + (i.ks || 0) * (i.cena || 0),
     0
   );
 
@@ -108,7 +110,7 @@ export default function App() {
     <div style={{ maxWidth: 900, margin: "0 auto", padding: 20 }}>
       <h1 style={{ textAlign: "center" }}>Sklad Trafika</h1>
 
-      {/* SEARCH */}
+      {/* 🔍 SEARCH */}
       <input
         placeholder="🔍 Hledat..."
         value={search}
@@ -116,7 +118,7 @@ export default function App() {
         style={inputStyle}
       />
 
-      {/* FORM */}
+      {/* 🧾 FORM */}
       <div style={card}>
         <input
           placeholder="Název"
@@ -125,36 +127,35 @@ export default function App() {
           style={inputStyle}
         />
 
-        {/* DROPDOWN KATEGORIE */}
+        {/* 📂 DYNAMICKÉ KATEGORIE */}
         <select
-          value={kategorie}
+          value={kategorie || ""}
           onChange={(e) => setKategorie(e.target.value)}
           style={inputStyle}
         >
-          <option value="">Kategorie</option>
-          {kategorieList.map((k) => (
-            <option key={k.id} value={k.name}>
-              {k.name}
+          <option value="">Vyber kategorii</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.name}>
+              {c.name}
             </option>
           ))}
         </select>
 
-        {/* DROPDOWN ZNACKY */}
+        {/* 🏷️ DYNAMICKÉ ZNAČKY */}
         <select
-          value={znacka}
+          value={znacka || ""}
           onChange={(e) => setZnacka(e.target.value)}
           style={inputStyle}
         >
-          <option value="">Značka</option>
-          {znackyList.map((z) => (
-            <option key={z.id} value={z.name}>
-              {z.name}
+          <option value="">Vyber značku</option>
+          {brands.map((b) => (
+            <option key={b.id} value={b.name}>
+              {b.name}
             </option>
           ))}
         </select>
 
         <input
-          type="number"
           placeholder="Ks"
           value={ks}
           onChange={(e) => setKs(e.target.value)}
@@ -162,7 +163,6 @@ export default function App() {
         />
 
         <input
-          type="number"
           placeholder="Cena"
           value={cena}
           onChange={(e) => setCena(e.target.value)}
@@ -174,7 +174,7 @@ export default function App() {
         </button>
       </div>
 
-      {/* STATS */}
+      {/* 📊 STATS */}
       <div style={card}>
         <p>Počet položek: {items.length}</p>
         <p style={{ color: "#4ea1ff", fontWeight: "bold" }}>
@@ -182,21 +182,19 @@ export default function App() {
         </p>
       </div>
 
-      {/* LIST */}
+      {/* 📋 LIST */}
       <div style={card}>
         {filtered.map((item) => (
           <div key={item.id} style={row}>
             <span>
-              {item.nazev || "-"} – {item.kategorie || "-"} –{" "}
-              {item.znacka || "-"} – {item.ks || 0} ks –{" "}
-              {item.cena || 0} Kč
+              {item.nazev} – {item.kategorie || "-"} –{" "}
+              {item.znacka || "-"} – {item.ks} ks – {item.cena} Kč
             </span>
 
             <div>
               <button onClick={() => editItem(item)} style={editBtn}>
                 Edit
               </button>
-
               <button
                 onClick={() => deleteItem(item.id)}
                 style={deleteBtn}
@@ -211,7 +209,7 @@ export default function App() {
   );
 }
 
-/* STYLY */
+/* 🎨 STYLY */
 const inputStyle = {
   width: "100%",
   padding: "10px",
@@ -252,7 +250,6 @@ const editBtn = {
   padding: "6px 10px",
   marginRight: "5px",
   borderRadius: "6px",
-  cursor: "pointer",
 };
 
 const deleteBtn = {
@@ -261,5 +258,4 @@ const deleteBtn = {
   border: "none",
   padding: "6px 10px",
   borderRadius: "6px",
-  cursor: "pointer",
 };
