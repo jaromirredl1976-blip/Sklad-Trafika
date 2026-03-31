@@ -8,19 +8,14 @@ const supabase = createClient(
 
 export default function App() {
   const [items, setItems] = useState([]);
-
   const [nazev, setNazev] = useState("");
   const [kategorieInput, setKategorieInput] = useState("");
   const [znackaInput, setZnackaInput] = useState("");
   const [ks, setKs] = useState("");
   const [cena, setCena] = useState("");
-
   const [search, setSearch] = useState("");
 
-  // ✏️ EDIT STATE
-  const [editId, setEditId] = useState(null);
-  const [editData, setEditData] = useState({});
-
+  // NAČTENÍ DAT
   useEffect(() => {
     loadData();
   }, []);
@@ -28,12 +23,17 @@ export default function App() {
   async function loadData() {
     const { data, error } = await supabase.from("sklad").select("*");
 
-    if (error) console.error(error);
-    else setItems(data);
+    if (error) {
+      console.error("Chyba:", error);
+    } else {
+      setItems(data);
+    }
   }
 
-  // ➕ ADD
+  // PŘIDÁNÍ
   async function addItem() {
+    if (!nazev || !ks || !cena) return;
+
     const { error } = await supabase.from("sklad").insert([
       {
         nazev,
@@ -44,7 +44,9 @@ export default function App() {
       },
     ]);
 
-    if (!error) {
+    if (error) {
+      console.error("Chyba:", error);
+    } else {
       setNazev("");
       setKategorieInput("");
       setZnackaInput("");
@@ -54,143 +56,134 @@ export default function App() {
     }
   }
 
-  // ❌ DELETE
+  // SMAZÁNÍ
   async function deleteItem(id) {
-    await supabase.from("sklad").delete().eq("id", id);
-    loadData();
-  }
+    const potvrdit = confirm("Opravdu chceš smazat položku?");
+    if (!potvrdit) return;
 
-  // ✏️ START EDIT
-  function startEdit(item) {
-    setEditId(item.id);
-    setEditData(item);
-  }
-
-  // 💾 SAVE EDIT
-  async function saveEdit() {
-    await supabase
+    const { error } = await supabase
       .from("sklad")
-      .update({
-        ...editData,
-        ks: Number(editData.ks),
-        cena: Number(editData.cena),
-      })
-      .eq("id", editId);
+      .delete()
+      .eq("id", id);
 
-    setEditId(null);
-    loadData();
+    if (error) {
+      console.error("Chyba:", error);
+    } else {
+      loadData();
+    }
   }
 
+  // FILTRACE
   const filteredItems = items.filter((item) =>
-    item.nazev.toLowerCase().includes(search.toLowerCase())
+    `${item.nazev} ${item.kategorie} ${item.znacka}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
+
+  // STATISTIKY
+  const totalValue = filteredItems.reduce(
+    (sum, item) => sum + item.ks * item.cena,
+    0
   );
 
   return (
-    <div className="container">
+    <div style={{ padding: "20px", maxWidth: "900px", margin: "auto" }}>
       <h1>Sklad Trafika</h1>
 
       {/* 🔍 SEARCH */}
-      <div className="card">
+      <input
+        placeholder="🔍 Hledat..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{
+          width: "100%",
+          padding: "10px",
+          marginBottom: "20px",
+          borderRadius: "8px",
+        }}
+      />
+
+      {/* 📦 FORM */}
+      <div style={{ marginBottom: "20px" }}>
         <input
-          placeholder="🔍 Hledat..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Název"
+          value={nazev}
+          onChange={(e) => setNazev(e.target.value)}
         />
+        <input
+          placeholder="Kategorie"
+          value={kategorieInput}
+          onChange={(e) => setKategorieInput(e.target.value)}
+        />
+        <input
+          placeholder="Značka"
+          value={znackaInput}
+          onChange={(e) => setZnackaInput(e.target.value)}
+        />
+        <input
+          placeholder="Ks"
+          value={ks}
+          onChange={(e) => setKs(e.target.value)}
+        />
+        <input
+          placeholder="Cena"
+          value={cena}
+          onChange={(e) => setCena(e.target.value)}
+        />
+
+        <button
+          onClick={addItem}
+          disabled={!nazev || !ks || !cena}
+          style={{
+            marginLeft: "10px",
+            padding: "8px 16px",
+            borderRadius: "8px",
+            background: "#3b82f6",
+            color: "white",
+            border: "none",
+            opacity: !nazev || !ks || !cena ? 0.5 : 1,
+            cursor: !nazev || !ks || !cena ? "not-allowed" : "pointer",
+          }}
+        >
+          Přidat
+        </button>
       </div>
 
-      {/* ➕ FORM */}
-      <div className="card">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "10px" }}>
-          <input placeholder="Název" value={nazev} onChange={(e) => setNazev(e.target.value)} />
-
-          <input placeholder="Kategorie" value={kategorieInput} onChange={(e) => setKategorieInput(e.target.value)} />
-
-          <input placeholder="Značka" value={znackaInput} onChange={(e) => setZnackaInput(e.target.value)} />
-
-          <input placeholder="Ks" value={ks} onChange={(e) => setKs(e.target.value)} />
-
-          <input placeholder="Cena" value={cena} onChange={(e) => setCena(e.target.value)} />
-        </div>
-
-        <div style={{ marginTop: "10px" }}>
-          <button onClick={addItem}>Přidat</button>
-        </div>
-      </div>
-
-      {/* 📊 STATS */}
-      <div className="card">
-        <strong>Počet položek:</strong> {items.length} <br />
-        <strong>Hodnota skladu:</strong>{" "}
-        {items.reduce((sum, i) => sum + i.ks * i.cena, 0)} Kč
+      {/* 📊 STATISTIKY */}
+      <div style={{ marginBottom: "20px" }}>
+        <p>Počet položek: {filteredItems.length}</p>
+        <p style={{ color: "#60a5fa", fontWeight: "bold" }}>
+          Hodnota skladu: {totalValue} Kč
+        </p>
       </div>
 
       {/* 📋 LIST */}
-      <div className="card">
-        {filteredItems.length === 0 ? (
-          <p>Žádná data</p>
-        ) : (
-          <ul>
-            {filteredItems.map((item) => (
-              <li key={item.id}>
-                {editId === item.id ? (
-                  <>
-                    <input
-                      value={editData.nazev}
-                      onChange={(e) =>
-                        setEditData({ ...editData, nazev: e.target.value })
-                      }
-                    />
-                    <input
-                      value={editData.kategorie}
-                      onChange={(e) =>
-                        setEditData({ ...editData, kategorie: e.target.value })
-                      }
-                    />
-                    <input
-                      value={editData.znacka}
-                      onChange={(e) =>
-                        setEditData({ ...editData, znacka: e.target.value })
-                      }
-                    />
-                    <input
-                      value={editData.ks}
-                      onChange={(e) =>
-                        setEditData({ ...editData, ks: e.target.value })
-                      }
-                    />
-                    <input
-                      value={editData.cena}
-                      onChange={(e) =>
-                        setEditData({ ...editData, cena: e.target.value })
-                      }
-                    />
+      {filteredItems.length === 0 ? (
+        <p>Žádná data</p>
+      ) : (
+        <ul>
+          {filteredItems.map((item) => (
+            <li key={item.id} style={{ marginBottom: "10px" }}>
+              {item.nazev} – {item.kategorie} – {item.znacka} – {item.ks} ks –{" "}
+              {item.cena} Kč
 
-                    <button onClick={saveEdit}>Uložit</button>
-                  </>
-                ) : (
-                  <>
-                    <span>
-                      {item.nazev} – {item.kategorie} – {item.znacka} –{" "}
-                      {item.ks} ks – {item.cena} Kč
-                    </span>
-
-                    <div style={{ display: "flex", gap: "10px" }}>
-                      <button onClick={() => startEdit(item)}>Edit</button>
-
-                      <button
-                        className="danger"
-                        onClick={() => deleteItem(item.id)}
-                      >
-                        Smazat
-                      </button>
-                    </div>
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+              <button
+                onClick={() => deleteItem(item.id)}
+                style={{
+                  marginLeft: "10px",
+                  background: "red",
+                  color: "white",
+                  border: "none",
+                  padding: "5px 10px",
+                  borderRadius: "6px",
+                }}
+              >
+                Smazat
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
