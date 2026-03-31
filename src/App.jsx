@@ -17,42 +17,42 @@ export default function App() {
   const [ks, setKs] = useState("");
   const [cena, setCena] = useState("");
 
+  const [novaKategorie, setNovaKategorie] = useState("");
+  const [novaZnacka, setNovaZnacka] = useState("");
+
   const [editId, setEditId] = useState(null);
 
   useEffect(() => {
     loadAll();
   }, []);
 
-  // 🔥 NAČTENÍ DAT
+  // 🔄 NAČTENÍ DAT
   async function loadAll() {
-    const { data, error } = await supabase
+    const { data: skladData } = await supabase
       .from("sklad")
       .select(`
-        *,
-        kategorie(id, name),
-        znacka(id, name)
+        id,
+        nazev,
+        ks,
+        cena,
+        kategorie ( id, name ),
+        znacka ( id, name )
       `);
 
-    if (error) console.error("Chyba sklad:", error);
-
-    const { data: kat, error: errKat } = await supabase
+    const { data: katData } = await supabase
       .from("kategorie")
-      .select("*");
+      .select("id, name");
 
-    if (errKat) console.error("Chyba kategorie:", errKat);
-
-    const { data: zn, error: errZn } = await supabase
+    const { data: znData } = await supabase
       .from("znacky")
-      .select("*");
+      .select("id, name");
 
-    if (errZn) console.error("Chyba znacky:", errZn);
-
-    setItems(data || []);
-    setKategorieList(kat || []);
-    setZnackyList(zn || []);
+    setItems(skladData || []);
+    setKategorieList(katData || []);
+    setZnackyList(znData || []);
   }
 
-  // 🔥 ADD / UPDATE
+  // ➕ PŘIDAT / EDITOVAT ITEM
   async function addOrUpdateItem() {
     if (!nazev) return;
 
@@ -60,47 +60,34 @@ export default function App() {
       nazev,
       kategorie: kategorie || null,
       znacka: znacka || null,
-      ks: Number(ks) || 0,
-      cena: Number(cena) || 0,
+      ks: Number(ks),
+      cena: Number(cena),
     };
 
     if (editId) {
-      const { error } = await supabase
-        .from("sklad")
-        .update(payload)
-        .eq("id", editId);
-
-      if (error) console.error("Update chyba:", error);
+      await supabase.from("sklad").update(payload).eq("id", editId);
       setEditId(null);
     } else {
-      const { error } = await supabase.from("sklad").insert([payload]);
-
-      if (error) console.error("Insert chyba:", error);
+      await supabase.from("sklad").insert([payload]);
     }
 
     clearForm();
     loadAll();
   }
 
-  // 🔥 EDIT (FIX)
+  // ✏️ EDIT
   function editItem(item) {
     setEditId(item.id);
     setNazev(item.nazev);
-
-    // MUSÍ být ID
     setKategorie(item.kategorie?.id || "");
     setZnacka(item.znacka?.id || "");
-
     setKs(item.ks);
     setCena(item.cena);
   }
 
-  // 🔥 DELETE
+  // ❌ DELETE
   async function deleteItem(id) {
-    const { error } = await supabase.from("sklad").delete().eq("id", id);
-
-    if (error) console.error("Delete chyba:", error);
-
+    await supabase.from("sklad").delete().eq("id", id);
     loadAll();
   }
 
@@ -112,9 +99,43 @@ export default function App() {
     setCena("");
   }
 
-  // 🔥 výpočet hodnoty skladu
+  // ➕ NOVÁ KATEGORIE
+  async function addKategorie() {
+    if (!novaKategorie) return;
+
+    const { data, error } = await supabase
+      .from("kategorie")
+      .insert([{ name: novaKategorie }])
+      .select()
+      .single();
+
+    if (error) return console.error(error);
+
+    setKategorie(data.id);
+    setNovaKategorie("");
+    loadAll();
+  }
+
+  // ➕ NOVÁ ZNAČKA
+  async function addZnacka() {
+    if (!novaZnacka) return;
+
+    const { data, error } = await supabase
+      .from("znacky")
+      .insert([{ name: novaZnacka }])
+      .select()
+      .single();
+
+    if (error) return console.error(error);
+
+    setZnacka(data.id);
+    setNovaZnacka("");
+    loadAll();
+  }
+
+  // 📊 CELKOVÁ HODNOTA
   const totalValue = items.reduce(
-    (sum, item) => sum + item.ks * item.cena,
+    (sum, item) => sum + item.cena * item.ks,
     0
   );
 
@@ -128,6 +149,7 @@ export default function App() {
         onChange={(e) => setNazev(e.target.value)}
       />
 
+      {/* KATEGORIE */}
       <select
         value={kategorie}
         onChange={(e) => setKategorie(e.target.value)}
@@ -140,6 +162,14 @@ export default function App() {
         ))}
       </select>
 
+      <input
+        placeholder="Nová kategorie"
+        value={novaKategorie}
+        onChange={(e) => setNovaKategorie(e.target.value)}
+      />
+      <button onClick={addKategorie}>+ Kategorie</button>
+
+      {/* ZNAČKA */}
       <select value={znacka} onChange={(e) => setZnacka(e.target.value)}>
         <option value="">Značka</option>
         {znackyList.map((z) => (
@@ -150,21 +180,25 @@ export default function App() {
       </select>
 
       <input
+        placeholder="Nová značka"
+        value={novaZnacka}
+        onChange={(e) => setNovaZnacka(e.target.value)}
+      />
+      <button onClick={addZnacka}>+ Značka</button>
+
+      <input
         placeholder="Ks"
-        type="number"
         value={ks}
         onChange={(e) => setKs(e.target.value)}
       />
-
       <input
         placeholder="Cena"
-        type="number"
         value={cena}
         onChange={(e) => setCena(e.target.value)}
       />
 
       <button onClick={addOrUpdateItem}>
-        {editId ? "Uložit změny" : "Přidat"}
+        {editId ? "Uložit" : "Přidat"}
       </button>
 
       <hr />
@@ -172,14 +206,10 @@ export default function App() {
       <h3>Počet položek: {items.length}</h3>
       <h3>Hodnota skladu: {totalValue} Kč</h3>
 
-      <hr />
-
       {items.map((item) => (
-        <div key={item.id} style={{ marginBottom: 10 }}>
-          <b>{item.nazev}</b> – {item.kategorie?.name || "-"} –{" "}
-          {item.znacka?.name || "-"} – {item.ks} ks – {item.cena} Kč
-
-          <br />
+        <div key={item.id}>
+          {item.nazev} – {item.kategorie?.name} –{" "}
+          {item.znacka?.name} – {item.ks} ks – {item.cena} Kč
 
           <button onClick={() => editItem(item)}>Edit</button>
           <button onClick={() => deleteItem(item.id)}>Smazat</button>
