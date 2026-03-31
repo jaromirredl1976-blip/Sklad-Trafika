@@ -8,43 +8,38 @@ const supabase = createClient(
 
 export default function App() {
   const [items, setItems] = useState([]);
-
   const [nazev, setNazev] = useState("");
   const [kategorieInput, setKategorieInput] = useState("");
   const [znackaInput, setZnackaInput] = useState("");
   const [ks, setKs] = useState("");
   const [cena, setCena] = useState("");
 
-  // ✅ NAČTENÍ DAT
+  // NAČTENÍ DAT
   useEffect(() => {
-    async function loadData() {
-      const { data, error } = await supabase
-        .from("sklad")
-        .select("*");
-
-      if (error) {
-        console.error("Chyba:", error);
-      } else {
-        setItems(data);
-      }
-    }
-
     loadData();
   }, []);
 
-  // ✅ PŘIDÁNÍ POLOŽKY (MIMO useEffect)
+  async function loadData() {
+    const { data, error } = await supabase.from("sklad").select("*");
+
+    if (error) {
+      console.error("Chyba:", error);
+    } else {
+      setItems(data);
+    }
+  }
+
+  // PŘIDÁNÍ POLOŽKY
   async function addItem() {
-    const { error } = await supabase
-      .from("sklad")
-      .insert([
-        {
-          nazev,
-          kategorie: kategorieInput,
-          znacka: znackaInput,
-          ks: Number(ks),
-          cena: Number(cena),
-        },
-      ]);
+    const { error } = await supabase.from("sklad").insert([
+      {
+        nazev,
+        kategorie: kategorieInput,
+        znacka: znackaInput,
+        ks: Number(ks),
+        cena: Number(cena),
+      },
+    ]);
 
     if (error) {
       console.error("Chyba:", error);
@@ -55,7 +50,21 @@ export default function App() {
       setKs("");
       setCena("");
 
-      location.reload();
+      loadData(); // obnoví data
+    }
+  }
+
+  // SMAZÁNÍ
+  async function deleteItem(id) {
+    const { error } = await supabase
+      .from("sklad")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Chyba:", error);
+    } else {
+      loadData();
     }
   }
 
@@ -63,29 +72,27 @@ export default function App() {
     <div>
       <h1>Sklad Trafika</h1>
 
-      {/* ✅ FORMULÁŘ */}
-      <div>
-        <input placeholder="Název" value={nazev} onChange={(e) => setNazev(e.target.value)} />
-        <input placeholder="Kategorie" value={kategorieInput} onChange={(e) => setKategorieInput(e.target.value)} />
-        <input placeholder="Značka" value={znackaInput} onChange={(e) => setZnackaInput(e.target.value)} />
-        <input placeholder="Ks" value={ks} onChange={(e) => setKs(e.target.value)} />
-        <input placeholder="Cena" value={cena} onChange={(e) => setCena(e.target.value)} />
-
-        <button onClick={addItem}>Přidat</button>
-      </div>
-
-      {/* ✅ VÝPIS */}
-      {items.length === 0 ? (
-        <p>Žádná data</p>
-      ) : (
-        <ul>
-          {items.map((item) => (
-            <li key={item.id}>
-              {item.nazev} - {item.kategorie} - {item.znacka} - {item.ks} ks - {item.cena} Kč
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
+      {/* FORMULÁŘ */}
+      <input
+        placeholder="Název"
+        value={nazev}
+        onChange={(e) => setNazev(e.target.value)}
+      />
+      <input
+        placeholder="Kategorie"
+        value={kategorieInput}
+        onChange={(e) => setKategorieInput(e.target.value)}
+      />
+      <input
+        placeholder="Značka"
+        value={znackaInput}
+        onChange={(e) => setZnackaInput(e.target.value)}
+      />
+      <input
+        placeholder="Ks"
+        value={ks}
+        onChange={(e) => setKs(e.target.value)}
+      />
+      <input
+        placeholder="Cena"
+        value={cena
