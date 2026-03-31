@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { useState, useEffect } from "react";
 
+// 🔌 Supabase
 const supabase = createClient(
   "https://jqddbwciekvfppfdpivk.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxZGRid2NpZWt2ZnBwZmRwaXZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MjQyNTQsImV4cCI6MjA5MDQwMDI1NH0.lDdHLZ3WEl9N-K_tcS-UF8TFXwItPQSr83YB_Kk_cRo"
@@ -8,22 +9,22 @@ const supabase = createClient(
 
 export default function App() {
   const [items, setItems] = useState([]);
+
   const [nazev, setNazev] = useState("");
   const [kategorieInput, setKategorieInput] = useState("");
   const [znackaInput, setZnackaInput] = useState("");
   const [ks, setKs] = useState("");
   const [cena, setCena] = useState("");
 
-  // ✅ NAČTENÍ DAT
+  const [search, setSearch] = useState("");
+
+  // 📥 NAČTENÍ DAT
   useEffect(() => {
     loadData();
   }, []);
 
   async function loadData() {
-    const { data, error } = await supabase
-      .from("sklad")
-      .select("*")
-      .order("id", { ascending: false });
+    const { data, error } = await supabase.from("sklad").select("*");
 
     if (error) {
       console.error("Chyba:", error);
@@ -32,12 +33,9 @@ export default function App() {
     }
   }
 
-  // ✅ PŘIDÁNÍ
+  // ➕ PŘIDÁNÍ
   async function addItem() {
-    if (!nazev || !kategorieInput || !znackaInput || !ks || !cena) {
-      alert("Vyplň všechna pole!");
-      return;
-    }
+    if (!nazev || !kategorieInput || !znackaInput) return;
 
     const { error } = await supabase.from("sklad").insert([
       {
@@ -62,12 +60,9 @@ export default function App() {
     }
   }
 
-  // ✅ SMAZÁNÍ
+  // ❌ SMAZÁNÍ
   async function deleteItem(id) {
-    const { error } = await supabase
-      .from("sklad")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("sklad").delete().eq("id", id);
 
     if (error) {
       console.error("Chyba:", error);
@@ -76,60 +71,108 @@ export default function App() {
     }
   }
 
+  // 🔍 FILTR
+  const filteredItems = items.filter((item) =>
+    item.nazev.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div style={{ padding: "20px" }}>
+    <div className="container">
       <h1>Sklad Trafika</h1>
 
-      {/* FORM */}
-      <div style={{ marginBottom: "20px" }}>
+      {/* 🔍 SEARCH */}
+      <div className="card">
         <input
-          placeholder="Název"
-          value={nazev}
-          onChange={(e) => setNazev(e.target.value)}
+          placeholder="🔍 Hledat..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
-        <input
-          placeholder="Kategorie"
-          value={kategorieInput}
-          onChange={(e) => setKategorieInput(e.target.value)}
-        />
-        <input
-          placeholder="Značka"
-          value={znackaInput}
-          onChange={(e) => setZnackaInput(e.target.value)}
-        />
-        <input
-          placeholder="Ks"
-          value={ks}
-          onChange={(e) => setKs(e.target.value)}
-        />
-        <input
-          placeholder="Cena"
-          value={cena}
-          onChange={(e) => setCena(e.target.value)}
-        />
-
-        <button onClick={addItem}>Přidat</button>
       </div>
 
-      {/* VÝPIS */}
-      {items.length === 0 ? (
-        <p>Žádná data</p>
-      ) : (
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          {items.map((item) => (
-            <li key={item.id} style={{ marginBottom: "10px" }}>
-              {item.nazev} - {item.kategorie} - {item.znacka} - {item.ks} ks - {item.cena} Kč
+      {/* 🧾 FORM */}
+      <div className="card">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(5, 1fr)",
+            gap: "10px",
+          }}
+        >
+          <input
+            placeholder="Název"
+            value={nazev}
+            onChange={(e) => setNazev(e.target.value)}
+          />
 
-              <button
-                onClick={() => deleteItem(item.id)}
-                style={{ marginLeft: "10px" }}
-              >
-                ❌ Smazat
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+          <select
+            value={kategorieInput}
+            onChange={(e) => setKategorieInput(e.target.value)}
+          >
+            <option value="">Kategorie</option>
+            <option>Tabák</option>
+            <option>Cigarety</option>
+            <option>Nápoje</option>
+          </select>
+
+          <select
+            value={znackaInput}
+            onChange={(e) => setZnackaInput(e.target.value)}
+          >
+            <option value="">Značka</option>
+            <option>Marlboro</option>
+            <option>Philip Morris</option>
+            <option>Austin</option>
+          </select>
+
+          <input
+            placeholder="Ks"
+            value={ks}
+            onChange={(e) => setKs(e.target.value)}
+          />
+
+          <input
+            placeholder="Cena"
+            value={cena}
+            onChange={(e) => setCena(e.target.value)}
+          />
+        </div>
+
+        <div style={{ marginTop: "10px" }}>
+          <button onClick={addItem}>Přidat</button>
+        </div>
+      </div>
+
+      {/* 📊 STATISTIKA */}
+      <div className="card">
+        <strong>Počet položek:</strong> {items.length} <br />
+        <strong>Hodnota skladu:</strong>{" "}
+        {items.reduce((sum, i) => sum + i.ks * i.cena, 0)} Kč
+      </div>
+
+      {/* 📋 LIST */}
+      <div className="card">
+        {filteredItems.length === 0 ? (
+          <p>Žádná data</p>
+        ) : (
+          <ul>
+            {filteredItems.map((item) => (
+              <li key={item.id}>
+                <span>
+                  {item.nazev} – {item.kategorie} – {item.znacka} – {item.ks} ks
+                  – {item.cena} Kč
+                </span>
+
+                <button
+                  className="danger"
+                  onClick={() => deleteItem(item.id)}
+                >
+                  Smazat
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
