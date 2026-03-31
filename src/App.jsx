@@ -23,6 +23,12 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [editId, setEditId] = useState(null);
 
+  const [editKatId, setEditKatId] = useState(null);
+  const [editKatName, setEditKatName] = useState("");
+
+  const [editZnId, setEditZnId] = useState(null);
+  const [editZnName, setEditZnName] = useState("");
+
   useEffect(() => {
     loadAll();
   }, []);
@@ -32,8 +38,8 @@ export default function App() {
       .from("sklad")
       .select(`
         *,
-        kategorie(name),
-        znacka(name)
+        kategorie(id,name),
+        znacka(id,name)
       `)
       .order("created_at", { ascending: false });
 
@@ -67,11 +73,6 @@ export default function App() {
     loadAll();
   }
 
-  async function deleteItem(id) {
-    await supabase.from("sklad").delete().eq("id", id);
-    loadAll();
-  }
-
   function editItem(item) {
     setEditId(item.id);
     setNazev(item.nazev);
@@ -79,6 +80,11 @@ export default function App() {
     setZnacka(item.znacka?.id || "");
     setKs(item.ks);
     setCena(item.cena);
+  }
+
+  async function deleteItem(id) {
+    await supabase.from("sklad").delete().eq("id", id);
+    loadAll();
   }
 
   function clearForm() {
@@ -109,8 +115,14 @@ export default function App() {
     loadAll();
   }
 
-  async function updateKategorie(id, name) {
-    await supabase.from("kategorie").update({ name }).eq("id", id);
+  async function updateKategorie(id) {
+    await supabase
+      .from("kategorie")
+      .update({ name: editKatName })
+      .eq("id", id);
+
+    setEditKatId(null);
+    setEditKatName("");
     loadAll();
   }
 
@@ -134,12 +146,17 @@ export default function App() {
     loadAll();
   }
 
-  async function updateZnacka(id, name) {
-    await supabase.from("znacky").update({ name }).eq("id", id);
+  async function updateZnacka(id) {
+    await supabase
+      .from("znacky")
+      .update({ name: editZnName })
+      .eq("id", id);
+
+    setEditZnId(null);
+    setEditZnName("");
     loadAll();
   }
 
-  // FILTRACE
   const filteredItems = items.filter(i =>
     i.nazev.toLowerCase().includes(search.toLowerCase())
   );
@@ -148,6 +165,15 @@ export default function App() {
     (sum, i) => sum + i.ks * i.cena,
     0
   );
+
+  const smallBtn = {
+    marginLeft: 6,
+    padding: "2px 6px",
+    fontSize: 12,
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer",
+  };
 
   return (
     <div style={{ padding: 20, maxWidth: 600, margin: "auto" }}>
@@ -162,18 +188,12 @@ export default function App() {
       />
 
       {/* FORM */}
-      <input
-        placeholder="Název"
-        value={nazev}
-        onChange={e => setNazev(e.target.value)}
-      />
+      <input placeholder="Název" value={nazev} onChange={e => setNazev(e.target.value)} />
 
       <select value={kategorie} onChange={e => setKategorie(e.target.value)}>
         <option value="">Kategorie</option>
         {kategorieList.map(k => (
-          <option key={k.id} value={k.id}>
-            {k.name}
-          </option>
+          <option key={k.id} value={k.id}>{k.name}</option>
         ))}
       </select>
 
@@ -187,9 +207,7 @@ export default function App() {
       <select value={znacka} onChange={e => setZnacka(e.target.value)}>
         <option value="">Značka</option>
         {znackyList.map(z => (
-          <option key={z.id} value={z.id}>
-            {z.name}
-          </option>
+          <option key={z.id} value={z.id}>{z.name}</option>
         ))}
       </select>
 
@@ -200,16 +218,8 @@ export default function App() {
       />
       <button onClick={addZnacka}>+ Značka</button>
 
-      <input
-        placeholder="Ks"
-        value={ks}
-        onChange={e => setKs(e.target.value)}
-      />
-      <input
-        placeholder="Cena"
-        value={cena}
-        onChange={e => setCena(e.target.value)}
-      />
+      <input placeholder="Ks" value={ks} onChange={e => setKs(e.target.value)} />
+      <input placeholder="Cena" value={cena} onChange={e => setCena(e.target.value)} />
 
       <button onClick={addOrUpdateItem}>
         {editId ? "Uložit" : "Přidat"}
@@ -217,7 +227,6 @@ export default function App() {
 
       <hr />
 
-      {/* STATS */}
       <p>Počet položek: {filteredItems.length}</p>
       <p>Hodnota skladu: {totalValue} Kč</p>
 
@@ -226,11 +235,7 @@ export default function App() {
       {/* ITEMS */}
       {filteredItems.map(item => (
         <div key={item.id} style={{ marginBottom: 10 }}>
-          <b>{item.nazev}</b> –{" "}
-          {item.kategorie?.name || "Bez kategorie"} –{" "}
-          {item.znacka?.name || "Bez značky"} – {item.ks} ks –{" "}
-          {item.cena} Kč
-
+          <b>{item.nazev}</b> – {item.kategorie?.name || "Bez kategorie"} – {item.znacka?.name || "Bez značky"} – {item.ks} ks – {item.cena} Kč
           <br />
           <button onClick={() => editItem(item)}>Edit</button>
           <button onClick={() => deleteItem(item.id)}>Smazat</button>
@@ -239,21 +244,47 @@ export default function App() {
 
       <hr />
 
-      {/* KATEGORIE LIST */}
+      {/* KATEGORIE */}
       <h3>Kategorie</h3>
       {kategorieList.map(k => (
-        <div key={k.id}>
-          {k.name}
-          <button onClick={() => deleteKategorie(k.id)}>❌</button>
+        <div key={k.id} style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
+          {editKatId === k.id ? (
+            <>
+              <input
+                value={editKatName}
+                onChange={e => setEditKatName(e.target.value)}
+              />
+              <button onClick={() => updateKategorie(k.id)} style={smallBtn}>💾</button>
+            </>
+          ) : (
+            <>
+              <span>{k.name}</span>
+              <button onClick={() => { setEditKatId(k.id); setEditKatName(k.name); }} style={{ ...smallBtn, background: "#1890ff", color: "#fff" }}>✏️</button>
+              <button onClick={() => deleteKategorie(k.id)} style={{ ...smallBtn, background: "#ff4d4f", color: "#fff" }}>✕</button>
+            </>
+          )}
         </div>
       ))}
 
-      {/* ZNAČKY LIST */}
+      {/* ZNAČKY */}
       <h3>Značky</h3>
       {znackyList.map(z => (
-        <div key={z.id}>
-          {z.name}
-          <button onClick={() => deleteZnacka(z.id)}>❌</button>
+        <div key={z.id} style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
+          {editZnId === z.id ? (
+            <>
+              <input
+                value={editZnName}
+                onChange={e => setEditZnName(e.target.value)}
+              />
+              <button onClick={() => updateZnacka(z.id)} style={smallBtn}>💾</button>
+            </>
+          ) : (
+            <>
+              <span>{z.name}</span>
+              <button onClick={() => { setEditZnId(z.id); setEditZnName(z.name); }} style={{ ...smallBtn, background: "#1890ff", color: "#fff" }}>✏️</button>
+              <button onClick={() => deleteZnacka(z.id)} style={{ ...smallBtn, background: "#ff4d4f", color: "#fff" }}>✕</button>
+            </>
+          )}
         </div>
       ))}
     </div>
