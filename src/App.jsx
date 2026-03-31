@@ -18,55 +18,46 @@ export default function App() {
 
   const [editId, setEditId] = useState(null);
 
-  // 🔥 NOVÉ
-  const [kategorieList, setKategorieList] = useState([]);
-  const [znackyList, setZnackyList] = useState([]);
-
   useEffect(() => {
     loadData();
-    loadMeta(); // 🔥 důležité
   }, []);
 
   async function loadData() {
     const { data, error } = await supabase.from("sklad").select("*");
-    if (!error) setItems(data);
-  }
 
-  // 🔥 NOVÁ FUNKCE
-  async function loadMeta() {
-    const { data: kat } = await supabase.from("kategorie").select("*");
-    const { data: zn } = await supabase.from("znacky").select("*");
+    if (error) {
+      console.error("SUPABASE ERROR:", error);
+      setItems([]);
+      return;
+    }
 
-    setKategorieList(kat || []);
-    setZnackyList(zn || []);
+    setItems(data || []);
   }
 
   async function addOrUpdateItem() {
     if (!nazev) return;
 
+    const payload = {
+      nazev: nazev || "",
+      kategorie: kategorie || "",
+      znacka: znacka || "",
+      ks: Number(ks) || 0,
+      cena: Number(cena) || 0,
+    };
+
     if (editId) {
-      await supabase
+      const { error } = await supabase
         .from("sklad")
-        .update({
-          nazev,
-          kategorie,
-          znacka,
-          ks: Number(ks),
-          cena: Number(cena),
-        })
+        .update(payload)
         .eq("id", editId);
+
+      if (error) console.error(error);
 
       setEditId(null);
     } else {
-      await supabase.from("sklad").insert([
-        {
-          nazev,
-          kategorie,
-          znacka,
-          ks: Number(ks),
-          cena: Number(cena),
-        },
-      ]);
+      const { error } = await supabase.from("sklad").insert([payload]);
+
+      if (error) console.error(error);
     }
 
     clearForm();
@@ -74,17 +65,20 @@ export default function App() {
   }
 
   async function deleteItem(id) {
-    await supabase.from("sklad").delete().eq("id", id);
+    const { error } = await supabase.from("sklad").delete().eq("id", id);
+
+    if (error) console.error(error);
+
     loadData();
   }
 
   function editItem(item) {
     setEditId(item.id);
-    setNazev(item.nazev);
-    setKategorie(item.kategorie);
-    setZnacka(item.znacka);
-    setKs(item.ks);
-    setCena(item.cena);
+    setNazev(item.nazev || "");
+    setKategorie(item.kategorie || "");
+    setZnacka(item.znacka || "");
+    setKs(item.ks || "");
+    setCena(item.cena || "");
   }
 
   function clearForm() {
@@ -95,12 +89,14 @@ export default function App() {
     setCena("");
   }
 
+  // 🔍 bezpečný filter
   const filtered = items.filter((i) =>
-    i.nazev.toLowerCase().includes(search.toLowerCase())
+    (i.nazev || "").toLowerCase().includes(search.toLowerCase())
   );
 
+  // 💰 bezpečný výpočet
   const totalValue = items.reduce(
-    (sum, i) => sum + i.ks * i.cena,
+    (sum, i) => sum + (Number(i.ks) || 0) * (Number(i.cena) || 0),
     0
   );
 
@@ -108,6 +104,7 @@ export default function App() {
     <div style={{ maxWidth: 900, margin: "0 auto", padding: 20 }}>
       <h1 style={{ textAlign: "center" }}>Sklad Trafika</h1>
 
+      {/* SEARCH */}
       <input
         placeholder="🔍 Hledat..."
         value={search}
@@ -115,6 +112,7 @@ export default function App() {
         style={inputStyle}
       />
 
+      {/* FORM */}
       <div style={card}>
         <input
           placeholder="Název"
@@ -123,33 +121,19 @@ export default function App() {
           style={inputStyle}
         />
 
-        {/* 🔥 KATEGORIE */}
-        <select
+        <input
+          placeholder="Kategorie"
           value={kategorie}
           onChange={(e) => setKategorie(e.target.value)}
           style={inputStyle}
-        >
-          <option value="">Kategorie</option>
-          {kategorieList.map((k) => (
-            <option key={k.id} value={k.name}>
-              {k.name}
-            </option>
-          ))}
-        </select>
+        />
 
-        {/* 🔥 ZNAČKY */}
-        <select
+        <input
+          placeholder="Značka"
           value={znacka}
           onChange={(e) => setZnacka(e.target.value)}
           style={inputStyle}
-        >
-          <option value="">Značka</option>
-          {znackyList.map((z) => (
-            <option key={z.id} value={z.name}>
-              {z.name}
-            </option>
-          ))}
-        </select>
+        />
 
         <input
           placeholder="Ks"
@@ -170,6 +154,7 @@ export default function App() {
         </button>
       </div>
 
+      {/* STATS */}
       <div style={card}>
         <p>Počet položek: {items.length}</p>
         <p style={{ color: "#4ea1ff", fontWeight: "bold" }}>
@@ -177,12 +162,14 @@ export default function App() {
         </p>
       </div>
 
+      {/* LIST */}
       <div style={card}>
         {filtered.map((item) => (
           <div key={item.id} style={row}>
             <span>
-              {item.nazev} – {item.kategorie} – {item.znacka} –{" "}
-              {item.ks} ks – {item.cena} Kč
+              {item.nazev || "-"} – {item.kategorie || "-"} –{" "}
+              {item.znacka || "-"} – {item.ks || 0} ks –{" "}
+              {item.cena || 0} Kč
             </span>
 
             <div>
@@ -203,3 +190,56 @@ export default function App() {
     </div>
   );
 }
+
+/* STYLY */
+const inputStyle = {
+  width: "100%",
+  padding: "10px",
+  marginBottom: "10px",
+  borderRadius: "8px",
+  border: "1px solid #2e3a4d",
+  background: "#0b1220",
+  color: "white",
+};
+
+const card = {
+  background: "#0f172a",
+  padding: "15px",
+  borderRadius: "12px",
+  marginTop: "15px",
+};
+
+const row = {
+  display: "flex",
+  justifyContent: "space-between",
+  padding: "10px 0",
+  borderBottom: "1px solid #1f2937",
+};
+
+const addBtn = {
+  background: "#4ea1ff",
+  color: "white",
+  border: "none",
+  padding: "10px",
+  borderRadius: "8px",
+  cursor: "pointer",
+};
+
+const editBtn = {
+  background: "#3b82f6",
+  color: "white",
+  border: "none",
+  padding: "6px 10px",
+  marginRight: "5px",
+  borderRadius: "6px",
+  cursor: "pointer",
+};
+
+const deleteBtn = {
+  background: "#ff2e2e",
+  color: "white",
+  border: "none",
+  padding: "6px 10px",
+  borderRadius: "6px",
+  cursor: "pointer",
+};
