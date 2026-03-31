@@ -50,7 +50,7 @@ export default function App() {
       setKs("");
       setCena("");
 
-      loadData(); // obnoví data
+      loadData();
     }
   }
 
@@ -95,4 +95,27 @@ export default function App() {
       />
       <input
         placeholder="Cena"
-        value={cena
+        value={cena}
+        onChange={(e) => setCena(e.target.value)}
+      />
+
+      <button onClick={addItem}>Přidat</button>
+
+      {/* VÝPIS */}
+      {items.length === 0 ? (
+        <p>Žádná data</p>
+      ) : (
+        <ul>
+          {items.map((item) => (
+            <li key={item.id}>
+              {item.nazev} - {item.kategorie} - {item.znacka} - {item.ks} ks - {item.cena} Kč
+              <button onClick={() => deleteItem(item.id)}>
+                ❌ Smazat
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
