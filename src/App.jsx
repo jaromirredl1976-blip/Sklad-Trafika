@@ -9,7 +9,13 @@ const supabase = createClient(
 export default function App() {
   const [items, setItems] = useState([]);
 
-  // načtení dat ze Supabase
+  const [nazev, setNazev] = useState("");
+  const [kategorieInput, setKategorieInput] = useState("");
+  const [znackaInput, setZnackaInput] = useState("");
+  const [ks, setKs] = useState("");
+  const [cena, setCena] = useState("");
+
+  // ✅ NAČTENÍ DAT
   useEffect(() => {
     async function loadData() {
       const { data, error } = await supabase
@@ -26,10 +32,49 @@ export default function App() {
     loadData();
   }, []);
 
+  // ✅ PŘIDÁNÍ POLOŽKY (MIMO useEffect)
+  async function addItem() {
+    const { error } = await supabase
+      .from("sklad")
+      .insert([
+        {
+          nazev,
+          kategorie: kategorieInput,
+          znacka: znackaInput,
+          ks: Number(ks),
+          cena: Number(cena),
+        },
+      ]);
+
+    if (error) {
+      console.error("Chyba:", error);
+    } else {
+      setNazev("");
+      setKategorieInput("");
+      setZnackaInput("");
+      setKs("");
+      setCena("");
+
+      location.reload();
+    }
+  }
+
   return (
     <div>
       <h1>Sklad Trafika</h1>
 
+      {/* ✅ FORMULÁŘ */}
+      <div>
+        <input placeholder="Název" value={nazev} onChange={(e) => setNazev(e.target.value)} />
+        <input placeholder="Kategorie" value={kategorieInput} onChange={(e) => setKategorieInput(e.target.value)} />
+        <input placeholder="Značka" value={znackaInput} onChange={(e) => setZnackaInput(e.target.value)} />
+        <input placeholder="Ks" value={ks} onChange={(e) => setKs(e.target.value)} />
+        <input placeholder="Cena" value={cena} onChange={(e) => setCena(e.target.value)} />
+
+        <button onClick={addItem}>Přidat</button>
+      </div>
+
+      {/* ✅ VÝPIS */}
       {items.length === 0 ? (
         <p>Žádná data</p>
       ) : (
