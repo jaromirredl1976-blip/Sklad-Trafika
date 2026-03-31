@@ -20,39 +20,31 @@ export default function App() {
   const [novaKategorie, setNovaKategorie] = useState("");
   const [novaZnacka, setNovaZnacka] = useState("");
 
+  const [search, setSearch] = useState("");
   const [editId, setEditId] = useState(null);
 
   useEffect(() => {
     loadAll();
   }, []);
 
-  // 🔄 NAČTENÍ DAT
   async function loadAll() {
-    const { data: skladData } = await supabase
+    const { data } = await supabase
       .from("sklad")
       .select(`
-        id,
-        nazev,
-        ks,
-        cena,
-        kategorie ( id, name ),
-        znacka ( id, name )
-      `);
+        *,
+        kategorie(name),
+        znacka(name)
+      `)
+      .order("created_at", { ascending: false });
 
-    const { data: katData } = await supabase
-      .from("kategorie")
-      .select("id, name");
+    const { data: kat } = await supabase.from("kategorie").select("*");
+    const { data: zn } = await supabase.from("znacky").select("*");
 
-    const { data: znData } = await supabase
-      .from("znacky")
-      .select("id, name");
-
-    setItems(skladData || []);
-    setKategorieList(katData || []);
-    setZnackyList(znData || []);
+    setItems(data || []);
+    setKategorieList(kat || []);
+    setZnackyList(zn || []);
   }
 
-  // ➕ PŘIDAT / EDITOVAT ITEM
   async function addOrUpdateItem() {
     if (!nazev) return;
 
@@ -60,8 +52,8 @@ export default function App() {
       nazev,
       kategorie: kategorie || null,
       znacka: znacka || null,
-      ks: Number(ks),
-      cena: Number(cena),
+      ks: ks ? Number(ks) : 0,
+      cena: cena ? Number(cena) : 0,
     };
 
     if (editId) {
@@ -75,7 +67,11 @@ export default function App() {
     loadAll();
   }
 
-  // ✏️ EDIT
+  async function deleteItem(id) {
+    await supabase.from("sklad").delete().eq("id", id);
+    loadAll();
+  }
+
   function editItem(item) {
     setEditId(item.id);
     setNazev(item.nazev);
@@ -83,12 +79,6 @@ export default function App() {
     setZnacka(item.znacka?.id || "");
     setKs(item.ks);
     setCena(item.cena);
-  }
-
-  // ❌ DELETE
-  async function deleteItem(id) {
-    await supabase.from("sklad").delete().eq("id", id);
-    loadAll();
   }
 
   function clearForm() {
@@ -99,63 +89,88 @@ export default function App() {
     setCena("");
   }
 
-  // ➕ NOVÁ KATEGORIE
+  // KATEGORIE
   async function addKategorie() {
     if (!novaKategorie) return;
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("kategorie")
       .insert([{ name: novaKategorie }])
       .select()
       .single();
-
-    if (error) return console.error(error);
 
     setKategorie(data.id);
     setNovaKategorie("");
     loadAll();
   }
 
-  // ➕ NOVÁ ZNAČKA
+  async function deleteKategorie(id) {
+    await supabase.from("kategorie").delete().eq("id", id);
+    loadAll();
+  }
+
+  async function updateKategorie(id, name) {
+    await supabase.from("kategorie").update({ name }).eq("id", id);
+    loadAll();
+  }
+
+  // ZNAČKY
   async function addZnacka() {
     if (!novaZnacka) return;
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("znacky")
       .insert([{ name: novaZnacka }])
       .select()
       .single();
-
-    if (error) return console.error(error);
 
     setZnacka(data.id);
     setNovaZnacka("");
     loadAll();
   }
 
-  // 📊 CELKOVÁ HODNOTA
-  const totalValue = items.reduce(
-    (sum, item) => sum + item.cena * item.ks,
+  async function deleteZnacka(id) {
+    await supabase.from("znacky").delete().eq("id", id);
+    loadAll();
+  }
+
+  async function updateZnacka(id, name) {
+    await supabase.from("znacky").update({ name }).eq("id", id);
+    loadAll();
+  }
+
+  // FILTRACE
+  const filteredItems = items.filter(i =>
+    i.nazev.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const totalValue = filteredItems.reduce(
+    (sum, i) => sum + i.ks * i.cena,
     0
   );
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 20, maxWidth: 600, margin: "auto" }}>
       <h1>Sklad</h1>
 
+      {/* SEARCH */}
+      <input
+        placeholder="🔍 Hledat..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        style={{ width: "100%", marginBottom: 10 }}
+      />
+
+      {/* FORM */}
       <input
         placeholder="Název"
         value={nazev}
-        onChange={(e) => setNazev(e.target.value)}
+        onChange={e => setNazev(e.target.value)}
       />
 
-      {/* KATEGORIE */}
-      <select
-        value={kategorie}
-        onChange={(e) => setKategorie(e.target.value)}
-      >
+      <select value={kategorie} onChange={e => setKategorie(e.target.value)}>
         <option value="">Kategorie</option>
-        {kategorieList.map((k) => (
+        {kategorieList.map(k => (
           <option key={k.id} value={k.id}>
             {k.name}
           </option>
@@ -165,14 +180,13 @@ export default function App() {
       <input
         placeholder="Nová kategorie"
         value={novaKategorie}
-        onChange={(e) => setNovaKategorie(e.target.value)}
+        onChange={e => setNovaKategorie(e.target.value)}
       />
       <button onClick={addKategorie}>+ Kategorie</button>
 
-      {/* ZNAČKA */}
-      <select value={znacka} onChange={(e) => setZnacka(e.target.value)}>
+      <select value={znacka} onChange={e => setZnacka(e.target.value)}>
         <option value="">Značka</option>
-        {znackyList.map((z) => (
+        {znackyList.map(z => (
           <option key={z.id} value={z.id}>
             {z.name}
           </option>
@@ -182,19 +196,19 @@ export default function App() {
       <input
         placeholder="Nová značka"
         value={novaZnacka}
-        onChange={(e) => setNovaZnacka(e.target.value)}
+        onChange={e => setNovaZnacka(e.target.value)}
       />
       <button onClick={addZnacka}>+ Značka</button>
 
       <input
         placeholder="Ks"
         value={ks}
-        onChange={(e) => setKs(e.target.value)}
+        onChange={e => setKs(e.target.value)}
       />
       <input
         placeholder="Cena"
         value={cena}
-        onChange={(e) => setCena(e.target.value)}
+        onChange={e => setCena(e.target.value)}
       />
 
       <button onClick={addOrUpdateItem}>
@@ -203,16 +217,43 @@ export default function App() {
 
       <hr />
 
-      <h3>Počet položek: {items.length}</h3>
-      <h3>Hodnota skladu: {totalValue} Kč</h3>
+      {/* STATS */}
+      <p>Počet položek: {filteredItems.length}</p>
+      <p>Hodnota skladu: {totalValue} Kč</p>
 
-      {items.map((item) => (
-        <div key={item.id}>
-          {item.nazev} – {item.kategorie?.name} –{" "}
-          {item.znacka?.name} – {item.ks} ks – {item.cena} Kč
+      <hr />
 
+      {/* ITEMS */}
+      {filteredItems.map(item => (
+        <div key={item.id} style={{ marginBottom: 10 }}>
+          <b>{item.nazev}</b> –{" "}
+          {item.kategorie?.name || "Bez kategorie"} –{" "}
+          {item.znacka?.name || "Bez značky"} – {item.ks} ks –{" "}
+          {item.cena} Kč
+
+          <br />
           <button onClick={() => editItem(item)}>Edit</button>
           <button onClick={() => deleteItem(item.id)}>Smazat</button>
+        </div>
+      ))}
+
+      <hr />
+
+      {/* KATEGORIE LIST */}
+      <h3>Kategorie</h3>
+      {kategorieList.map(k => (
+        <div key={k.id}>
+          {k.name}
+          <button onClick={() => deleteKategorie(k.id)}>❌</button>
+        </div>
+      ))}
+
+      {/* ZNAČKY LIST */}
+      <h3>Značky</h3>
+      {znackyList.map(z => (
+        <div key={z.id}>
+          {z.name}
+          <button onClick={() => deleteZnacka(z.id)}>❌</button>
         </div>
       ))}
     </div>
