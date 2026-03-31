@@ -15,12 +15,6 @@ export default function App() {
   const [cena, setCena] = useState("");
   const [search, setSearch] = useState("");
 
-  const [editId, setEditId] = useState(null);
-
-  // dropdown data
-  const kategorieList = ["Tabák", "Cigarety", "Doplňky"];
-  const znackyList = ["Marlboro", "Philip Morris", "Austin"];
-
   useEffect(() => {
     loadData();
   }, []);
@@ -28,10 +22,13 @@ export default function App() {
   async function loadData() {
     const { data, error } = await supabase.from("sklad").select("*");
 
-    if (!error) setItems(data);
+    if (error) {
+      console.error("Chyba:", error);
+    } else {
+      setItems(data);
+    }
   }
 
-  // ADD
   async function addItem() {
     if (!nazev || !ks || !cena) return;
 
@@ -45,7 +42,9 @@ export default function App() {
       },
     ]);
 
-    if (!error) {
+    if (error) {
+      console.error("Chyba:", error);
+    } else {
       setNazev("");
       setKategorieInput("");
       setZnackaInput("");
@@ -55,9 +54,9 @@ export default function App() {
     }
   }
 
-  // DELETE
   async function deleteItem(id) {
-    if (!confirm("Opravdu smazat?")) return;
+    const potvrdit = confirm("Opravdu chceš smazat položku?");
+    if (!potvrdit) return;
 
     const { error } = await supabase
       .from("sklad")
@@ -65,19 +64,6 @@ export default function App() {
       .eq("id", id);
 
     if (!error) loadData();
-  }
-
-  // EDIT
-  async function updateItem(item) {
-    const { error } = await supabase
-      .from("sklad")
-      .update(item)
-      .eq("id", item.id);
-
-    if (!error) {
-      setEditId(null);
-      loadData();
-    }
   }
 
   const filteredItems = items.filter((item) =>
@@ -92,12 +78,19 @@ export default function App() {
   );
 
   return (
-    <div style={{ padding: "30px", maxWidth: "1000px", margin: "auto", color: "#e5e7eb" }}>
+    <div
+      style={{
+        padding: "30px",
+        maxWidth: "1000px",
+        margin: "auto",
+        color: "#e5e7eb",
+      }}
+    >
       <h1 style={{ textAlign: "center", marginBottom: "30px" }}>
         Sklad Trafika
       </h1>
 
-      {/* SEARCH */}
+      {/* 🔍 SEARCH */}
       <input
         placeholder="🔍 Hledat..."
         value={search}
@@ -113,38 +106,49 @@ export default function App() {
         }}
       />
 
-      {/* FORM */}
-      <div style={{
-        background: "#020617",
-        padding: "20px",
-        borderRadius: "12px",
-        marginBottom: "25px",
-        border: "1px solid #1f2937",
-      }}>
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(5, 1fr)",
-          gap: "10px",
-          marginBottom: "15px",
-        }}>
-          <input placeholder="Název" value={nazev} onChange={(e) => setNazev(e.target.value)} />
-
-          <select value={kategorieInput} onChange={(e) => setKategorieInput(e.target.value)}>
-            <option value="">Kategorie</option>
-            {kategorieList.map((k) => (
-              <option key={k}>{k}</option>
-            ))}
-          </select>
-
-          <select value={znackaInput} onChange={(e) => setZnackaInput(e.target.value)}>
-            <option value="">Značka</option>
-            {znackyList.map((z) => (
-              <option key={z}>{z}</option>
-            ))}
-          </select>
-
-          <input placeholder="Ks" value={ks} onChange={(e) => setKs(e.target.value)} />
-          <input placeholder="Cena" value={cena} onChange={(e) => setCena(e.target.value)} />
+      {/* 📦 FORM GRID */}
+      <div
+        style={{
+          background: "#020617",
+          padding: "20px",
+          borderRadius: "12px",
+          marginBottom: "25px",
+          border: "1px solid #1f2937",
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(5, 1fr)",
+            gap: "10px",
+            marginBottom: "15px",
+          }}
+        >
+          <input
+            placeholder="Název"
+            value={nazev}
+            onChange={(e) => setNazev(e.target.value)}
+          />
+          <input
+            placeholder="Kategorie"
+            value={kategorieInput}
+            onChange={(e) => setKategorieInput(e.target.value)}
+          />
+          <input
+            placeholder="Značka"
+            value={znackaInput}
+            onChange={(e) => setZnackaInput(e.target.value)}
+          />
+          <input
+            placeholder="Ks"
+            value={ks}
+            onChange={(e) => setKs(e.target.value)}
+          />
+          <input
+            placeholder="Cena"
+            value={cena}
+            onChange={(e) => setCena(e.target.value)}
+          />
         </div>
 
         <button
@@ -157,108 +161,73 @@ export default function App() {
             color: "white",
             border: "none",
             opacity: !nazev || !ks || !cena ? 0.5 : 1,
+            cursor: !nazev || !ks || !cena ? "not-allowed" : "pointer",
           }}
         >
           Přidat
         </button>
       </div>
 
-      {/* STATS */}
-      <div style={{
-        background: "#020617",
-        padding: "15px",
-        borderRadius: "12px",
-        marginBottom: "25px",
-        border: "1px solid #1f2937",
-      }}>
+      {/* 📊 STATISTIKY */}
+      <div
+        style={{
+          background: "#020617",
+          padding: "15px",
+          borderRadius: "12px",
+          marginBottom: "25px",
+          border: "1px solid #1f2937",
+        }}
+      >
         <p>Počet položek: {filteredItems.length}</p>
         <p style={{ color: "#60a5fa", fontWeight: "bold" }}>
           Hodnota skladu: {totalValue} Kč
         </p>
       </div>
 
-      {/* LIST */}
-      <div style={{
-        background: "#020617",
-        padding: "20px",
-        borderRadius: "12px",
-        border: "1px solid #1f2937",
-      }}>
-        {filteredItems.map((item) => (
-          <div key={item.id} style={{
-            padding: "10px 0",
-            borderBottom: "1px solid #1f2937",
-          }}>
-
-            {editId === item.id ? (
-              <div style={{ display: "flex", gap: "10px" }}>
-                <input
-                  value={item.nazev}
-                  onChange={(e) =>
-                    setItems(items.map(i =>
-                      i.id === item.id ? { ...i, nazev: e.target.value } : i
-                    ))
-                  }
-                />
-
-                <input
-                  value={item.ks}
-                  onChange={(e) =>
-                    setItems(items.map(i =>
-                      i.id === item.id ? { ...i, ks: e.target.value } : i
-                    ))
-                  }
-                />
-
-                <input
-                  value={item.cena}
-                  onChange={(e) =>
-                    setItems(items.map(i =>
-                      i.id === item.id ? { ...i, cena: e.target.value } : i
-                    ))
-                  }
-                />
-
-                <button onClick={() => updateItem(item)}>Uložit</button>
+      {/* 📋 LIST */}
+      <div
+        style={{
+          background: "#020617",
+          padding: "20px",
+          borderRadius: "12px",
+          border: "1px solid #1f2937",
+        }}
+      >
+        {filteredItems.length === 0 ? (
+          <p>Žádná data</p>
+        ) : (
+          filteredItems.map((item) => (
+            <div
+              key={item.id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "10px 0",
+                borderBottom: "1px solid #1f2937",
+              }}
+            >
+              <div>
+                {item.nazev} – {item.kategorie} – {item.znacka} –{" "}
+                {item.ks} ks – {item.cena} Kč
               </div>
-            ) : (
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div>
-                  {item.nazev} – {item.kategorie} – {item.znacka} – {item.ks} ks – {item.cena} Kč
-                </div>
 
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <button
-                    onClick={() => setEditId(item.id)}
-                    style={{
-                      background: "#3b82f6",
-                      color: "white",
-                      border: "none",
-                      padding: "5px 10px",
-                      borderRadius: "6px",
-                    }}
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    onClick={() => deleteItem(item.id)}
-                    style={{
-                      background: "#ef4444",
-                      color: "white",
-                      border: "none",
-                      padding: "5px 10px",
-                      borderRadius: "6px",
-                    }}
-                  >
-                    Smazat
-                  </button>
-                </div>
-              </div>
-            )}
-
-          </div>
-        ))}
+              <button
+                onClick={() => deleteItem(item.id)}
+                style={{
+                  background: "#ef4444",
+                  color: "white",
+                  border: "none",
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                }}
+              >
+                Smazat
+              </button>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
