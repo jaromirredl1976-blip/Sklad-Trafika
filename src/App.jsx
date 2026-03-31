@@ -16,17 +16,21 @@ export default function App() {
   const [ks, setKs] = useState("");
   const [cena, setCena] = useState("");
 
+  const [kategorieList, setKategorieList] = useState([]);
+  const [znackyList, setZnackyList] = useState([]);
+
   const [editId, setEditId] = useState(null);
 
   useEffect(() => {
     loadData();
+    loadLists();
   }, []);
 
   async function loadData() {
     const { data, error } = await supabase.from("sklad").select("*");
 
     if (error) {
-      console.error("SUPABASE ERROR:", error);
+      console.error(error);
       setItems([]);
       return;
     }
@@ -34,30 +38,33 @@ export default function App() {
     setItems(data || []);
   }
 
+  async function loadLists() {
+    const { data: kat } = await supabase.from("kategorie").select("*");
+    const { data: zn } = await supabase.from("znacky").select("*");
+
+    setKategorieList(kat || []);
+    setZnackyList(zn || []);
+  }
+
   async function addOrUpdateItem() {
-    if (!nazev) return;
+    if (!nazev || !kategorie || !znacka) {
+      alert("Vyplň všechny údaje");
+      return;
+    }
 
     const payload = {
-      nazev: nazev || "",
-      kategorie: kategorie || "",
-      znacka: znacka || "",
+      nazev,
+      kategorie,
+      znacka,
       ks: Number(ks) || 0,
       cena: Number(cena) || 0,
     };
 
     if (editId) {
-      const { error } = await supabase
-        .from("sklad")
-        .update(payload)
-        .eq("id", editId);
-
-      if (error) console.error(error);
-
+      await supabase.from("sklad").update(payload).eq("id", editId);
       setEditId(null);
     } else {
-      const { error } = await supabase.from("sklad").insert([payload]);
-
-      if (error) console.error(error);
+      await supabase.from("sklad").insert([payload]);
     }
 
     clearForm();
@@ -65,10 +72,7 @@ export default function App() {
   }
 
   async function deleteItem(id) {
-    const { error } = await supabase.from("sklad").delete().eq("id", id);
-
-    if (error) console.error(error);
-
+    await supabase.from("sklad").delete().eq("id", id);
     loadData();
   }
 
@@ -89,12 +93,12 @@ export default function App() {
     setCena("");
   }
 
-  // 🔍 bezpečný filter
-  const filtered = items.filter((i) =>
-    (i.nazev || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = items
+    .filter((i) =>
+      (i.nazev || "").toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => (a.nazev || "").localeCompare(b.nazev || ""));
 
-  // 💰 bezpečný výpočet
   const totalValue = items.reduce(
     (sum, i) => sum + (Number(i.ks) || 0) * (Number(i.cena) || 0),
     0
@@ -121,21 +125,36 @@ export default function App() {
           style={inputStyle}
         />
 
-        <input
-          placeholder="Kategorie"
+        {/* DROPDOWN KATEGORIE */}
+        <select
           value={kategorie}
           onChange={(e) => setKategorie(e.target.value)}
           style={inputStyle}
-        />
+        >
+          <option value="">Kategorie</option>
+          {kategorieList.map((k) => (
+            <option key={k.id} value={k.name}>
+              {k.name}
+            </option>
+          ))}
+        </select>
 
-        <input
-          placeholder="Značka"
+        {/* DROPDOWN ZNACKY */}
+        <select
           value={znacka}
           onChange={(e) => setZnacka(e.target.value)}
           style={inputStyle}
-        />
+        >
+          <option value="">Značka</option>
+          {znackyList.map((z) => (
+            <option key={z.id} value={z.name}>
+              {z.name}
+            </option>
+          ))}
+        </select>
 
         <input
+          type="number"
           placeholder="Ks"
           value={ks}
           onChange={(e) => setKs(e.target.value)}
@@ -143,6 +162,7 @@ export default function App() {
         />
 
         <input
+          type="number"
           placeholder="Cena"
           value={cena}
           onChange={(e) => setCena(e.target.value)}
