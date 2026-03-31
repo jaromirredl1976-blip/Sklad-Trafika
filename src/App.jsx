@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 
 const supabase = createClient(
   "https://jqddbwciekvfppfdpivk.supabase.co",
-  "TVŮJ_API_KEY"
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxZGRid2NpZWt2ZnBwZmRwaXZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MjQyNTQsImV4cCI6MjA5MDQwMDI1NH0.lDdHLZ3WEl9N-K_tcS-UF8TFXwItPQSr83YB_Kk_cRo"
 );
 
 export default function App() {
