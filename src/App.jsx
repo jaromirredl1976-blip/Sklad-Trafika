@@ -14,13 +14,16 @@ export default function App() {
   const [ks, setKs] = useState("");
   const [cena, setCena] = useState("");
 
-  // NAČTENÍ DAT
+  // ✅ NAČTENÍ DAT
   useEffect(() => {
     loadData();
   }, []);
 
   async function loadData() {
-    const { data, error } = await supabase.from("sklad").select("*");
+    const { data, error } = await supabase
+      .from("sklad")
+      .select("*")
+      .order("id", { ascending: false });
 
     if (error) {
       console.error("Chyba:", error);
@@ -29,8 +32,13 @@ export default function App() {
     }
   }
 
-  // PŘIDÁNÍ POLOŽKY
+  // ✅ PŘIDÁNÍ
   async function addItem() {
+    if (!nazev || !kategorieInput || !znackaInput || !ks || !cena) {
+      alert("Vyplň všechna pole!");
+      return;
+    }
+
     const { error } = await supabase.from("sklad").insert([
       {
         nazev,
@@ -54,7 +62,7 @@ export default function App() {
     }
   }
 
-  // SMAZÁNÍ
+  // ✅ SMAZÁNÍ
   async function deleteItem(id) {
     const { error } = await supabase
       .from("sklad")
@@ -69,47 +77,53 @@ export default function App() {
   }
 
   return (
-    <div>
+    <div style={{ padding: "20px" }}>
       <h1>Sklad Trafika</h1>
 
-      {/* FORMULÁŘ */}
-      <input
-        placeholder="Název"
-        value={nazev}
-        onChange={(e) => setNazev(e.target.value)}
-      />
-      <input
-        placeholder="Kategorie"
-        value={kategorieInput}
-        onChange={(e) => setKategorieInput(e.target.value)}
-      />
-      <input
-        placeholder="Značka"
-        value={znackaInput}
-        onChange={(e) => setZnackaInput(e.target.value)}
-      />
-      <input
-        placeholder="Ks"
-        value={ks}
-        onChange={(e) => setKs(e.target.value)}
-      />
-      <input
-        placeholder="Cena"
-        value={cena}
-        onChange={(e) => setCena(e.target.value)}
-      />
+      {/* FORM */}
+      <div style={{ marginBottom: "20px" }}>
+        <input
+          placeholder="Název"
+          value={nazev}
+          onChange={(e) => setNazev(e.target.value)}
+        />
+        <input
+          placeholder="Kategorie"
+          value={kategorieInput}
+          onChange={(e) => setKategorieInput(e.target.value)}
+        />
+        <input
+          placeholder="Značka"
+          value={znackaInput}
+          onChange={(e) => setZnackaInput(e.target.value)}
+        />
+        <input
+          placeholder="Ks"
+          value={ks}
+          onChange={(e) => setKs(e.target.value)}
+        />
+        <input
+          placeholder="Cena"
+          value={cena}
+          onChange={(e) => setCena(e.target.value)}
+        />
 
-      <button onClick={addItem}>Přidat</button>
+        <button onClick={addItem}>Přidat</button>
+      </div>
 
       {/* VÝPIS */}
       {items.length === 0 ? (
         <p>Žádná data</p>
       ) : (
-        <ul>
+        <ul style={{ listStyle: "none", padding: 0 }}>
           {items.map((item) => (
-            <li key={item.id}>
+            <li key={item.id} style={{ marginBottom: "10px" }}>
               {item.nazev} - {item.kategorie} - {item.znacka} - {item.ks} ks - {item.cena} Kč
-              <button onClick={() => deleteItem(item.id)}>
+
+              <button
+                onClick={() => deleteItem(item.id)}
+                style={{ marginLeft: "10px" }}
+              >
                 ❌ Smazat
               </button>
             </li>
