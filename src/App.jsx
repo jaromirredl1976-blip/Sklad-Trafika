@@ -18,14 +18,27 @@ export default function App() {
 
   const [editId, setEditId] = useState(null);
 
+  // 🔥 NOVÉ
+  const [kategorieList, setKategorieList] = useState([]);
+  const [znackyList, setZnackyList] = useState([]);
+
   useEffect(() => {
     loadData();
+    loadMeta(); // 🔥 důležité
   }, []);
 
   async function loadData() {
     const { data, error } = await supabase.from("sklad").select("*");
-
     if (!error) setItems(data);
+  }
+
+  // 🔥 NOVÁ FUNKCE
+  async function loadMeta() {
+    const { data: kat } = await supabase.from("kategorie").select("*");
+    const { data: zn } = await supabase.from("znacky").select("*");
+
+    setKategorieList(kat || []);
+    setZnackyList(zn || []);
   }
 
   async function addOrUpdateItem() {
@@ -95,7 +108,6 @@ export default function App() {
     <div style={{ maxWidth: 900, margin: "0 auto", padding: 20 }}>
       <h1 style={{ textAlign: "center" }}>Sklad Trafika</h1>
 
-      {/* 🔍 SEARCH */}
       <input
         placeholder="🔍 Hledat..."
         value={search}
@@ -103,7 +115,6 @@ export default function App() {
         style={inputStyle}
       />
 
-      {/* 🧾 FORM */}
       <div style={card}>
         <input
           placeholder="Název"
@@ -112,25 +123,32 @@ export default function App() {
           style={inputStyle}
         />
 
+        {/* 🔥 KATEGORIE */}
         <select
           value={kategorie}
           onChange={(e) => setKategorie(e.target.value)}
           style={inputStyle}
         >
           <option value="">Kategorie</option>
-          <option value="Cigarety">Cigarety</option>
-          <option value="Tabák">Tabák</option>
+          {kategorieList.map((k) => (
+            <option key={k.id} value={k.name}>
+              {k.name}
+            </option>
+          ))}
         </select>
 
+        {/* 🔥 ZNAČKY */}
         <select
           value={znacka}
           onChange={(e) => setZnacka(e.target.value)}
           style={inputStyle}
         >
           <option value="">Značka</option>
-          <option value="Marlboro">Marlboro</option>
-          <option value="Philip Morris">Philip Morris</option>
-          <option value="Austin">Austin</option>
+          {znackyList.map((z) => (
+            <option key={z.id} value={z.name}>
+              {z.name}
+            </option>
+          ))}
         </select>
 
         <input
@@ -152,7 +170,6 @@ export default function App() {
         </button>
       </div>
 
-      {/* 📊 STATS */}
       <div style={card}>
         <p>Počet položek: {items.length}</p>
         <p style={{ color: "#4ea1ff", fontWeight: "bold" }}>
@@ -160,7 +177,6 @@ export default function App() {
         </p>
       </div>
 
-      {/* 📋 LIST */}
       <div style={card}>
         {filtered.map((item) => (
           <div key={item.id} style={row}>
@@ -170,10 +186,7 @@ export default function App() {
             </span>
 
             <div>
-              <button
-                onClick={() => editItem(item)}
-                style={editBtn}
-              >
+              <button onClick={() => editItem(item)} style={editBtn}>
                 Edit
               </button>
 
@@ -190,61 +203,3 @@ export default function App() {
     </div>
   );
 }
-
-/* 🎨 STYLY */
-const inputStyle = {
-  width: "100%",
-  padding: "10px",
-  marginBottom: "10px",
-  borderRadius: "8px",
-  border: "1px solid #2e3a4d",
-  background: "#0b1220",
-  color: "white",
-};
-
-const card = {
-  background: "#0f172a",
-  padding: "15px",
-  borderRadius: "12px",
-  marginTop: "15px",
-  boxShadow: "0 0 20px rgba(0,0,0,0.3)",
-};
-
-const row = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  padding: "10px 0",
-  borderBottom: "1px solid #1f2937",
-};
-
-const addBtn = {
-  background: "linear-gradient(90deg, #4ea1ff, #7c3aed)",
-  color: "white",
-  border: "none",
-  padding: "10px",
-  borderRadius: "8px",
-  cursor: "pointer",
-  boxShadow: "0 0 10px rgba(124,58,237,0.6)",
-};
-
-const editBtn = {
-  background: "#3b82f6",
-  color: "white",
-  border: "none",
-  padding: "6px 10px",
-  marginRight: "5px",
-  borderRadius: "6px",
-  cursor: "pointer",
-  boxShadow: "0 0 8px rgba(59,130,246,0.7)",
-};
-
-const deleteBtn = {
-  background: "#ff2e2e",
-  color: "white",
-  border: "none",
-  padding: "6px 10px",
-  borderRadius: "6px",
-  cursor: "pointer",
-  boxShadow: "0 0 12px rgba(255,0,0,0.8)",
-};
