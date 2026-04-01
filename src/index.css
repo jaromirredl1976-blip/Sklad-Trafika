@@ -1,143 +1,182 @@
 :root {
-  /* 🎨 BARVY (dark modern UI) */
-  --bg: #0b0f1a;
-  --bg-card: #121826;
-  --text: #9ca3af;
-  --text-h: #f3f4f6;
-  --border: #1f2937;
-  --accent: #3b82f6;
-  --accent-light: #60a5fa;
-  --danger: #ef4444;
-
-  /* 🎯 FONTY */
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-
-  color: var(--text);
-  background: var(--bg);
-
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --bg: #0b1220;
+  --bg-soft: #0f1a2e;
+  --card: #111c33;
+  --border: #1f2a44;
+  --text: #e6edf6;
+  --text-muted: #9fb0d0;
+  --accent: #4f8cff;
+  --danger: #ff5d5d;
 }
 
-/* 📱 RESPONSIVE (musí být mimo :root!) */
-@media (max-width: 1024px) {
-  :root {
-    font-size: 16px;
-  }
+* {
+  box-sizing: border-box;
 }
 
-/* 🌍 BODY */
 body {
   margin: 0;
-  background: linear-gradient(135deg, #0b0f1a, #0f172a);
+  font-family: system-ui, Arial, sans-serif;
+  background: linear-gradient(180deg, #0b1220, #070d18);
   color: var(--text);
 }
 
-/* 📦 APP WRAPPER */
-#root {
-  max-width: 1000px;
+/* === CONTAINER === */
+.container {
+  max-width: 700px;
   margin: auto;
   padding: 20px;
 }
 
-/* 🔤 NADPISY */
-h1, h2 {
-  font-family: var(--heading);
-  color: var(--text-h);
-}
-
+/* === TITLE === */
 h1 {
-  font-size: 42px;
   text-align: center;
   margin-bottom: 20px;
 }
 
-@media (max-width: 1024px) {
-  h1 {
-    font-size: 28px;
-  }
-}
-
-h2 {
-  font-size: 20px;
-  margin-bottom: 10px;
-}
-
-/* 📄 TEXT */
-p {
-  margin: 0;
-}
-
-/* 📦 CARD */
-.card {
-  background: var(--bg-card);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-  border: 1px solid var(--border);
-  box-shadow: 0 0 20px rgba(0,0,0,0.3);
-}
-
-/* 🧾 INPUTY */
-input, select {
+/* === INPUTS === */
+input,
+select {
   width: 100%;
-  padding: 10px;
-  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border-radius: 10px;
   border: 1px solid var(--border);
-  background: #0b1220;
-  color: white;
+  background: var(--bg-soft);
+  color: var(--text);
+  outline: none;
 }
 
-input:focus, select:focus {
-  outline: none;
+input:focus,
+select:focus {
   border-color: var(--accent);
 }
 
-/* 🔘 BUTTON */
+/* === BUTTON === */
 button {
-  background: var(--accent);
-  color: white;
   border: none;
-  padding: 10px 14px;
-  border-radius: 8px;
   cursor: pointer;
 }
 
-button:hover {
-  background: var(--accent-light);
+/* hlavní tlačítko */
+.btn-main {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  margin-top: 10px;
 }
 
-/* ❌ DELETE BUTTON */
-button.danger {
+/* malé ikonky (EDIT / DELETE) */
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: 0.2s;
+}
+
+.btn-icon:hover {
+  background: var(--accent);
+  color: white;
+}
+
+/* delete varianta */
+.btn-icon.delete:hover {
   background: var(--danger);
 }
 
-button.danger:hover {
-  opacity: 0.8;
+/* === ADD BUTTON (+) === */
+.btn-add {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* 📋 LIST */
-ul {
-  list-style: none;
-  padding: 0;
+/* === ROW INPUT + BUTTON === */
+.row {
+  display: flex;
+  gap: 10px;
 }
 
-li {
+.row input {
+  flex: 1;
+}
+
+/* === LIST === */
+.list {
+  margin-top: 20px;
+}
+
+.list h3 {
+  margin-bottom: 10px;
+}
+
+/* ITEM */
+.item {
   display: flex;
   justify-content: space-between;
-  padding: 10px;
+  align-items: center;
+  padding: 10px 0;
   border-bottom: 1px solid var(--border);
 }
 
-/* 🧮 CODE (necháme pro debug) */
-code {
-  font-family: var(--mono);
-  background: #1f2028;
-  padding: 4px 8px;
-  border-radius: 4px;
+/* ACTIONS (edit/delete vedle sebe) */
+.actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* === INLINE EDIT === */
+.edit-input {
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  color: var(--text);
+}
+
+/* === STATS === */
+.stats {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+/* === SEARCH === */
+.search {
+  margin-bottom: 10px;
+}
+
+/* === MOBILE === */
+@media (max-width: 600px) {
+  .container {
+    padding: 12px;
+  }
+
+  .item {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .actions {
+    gap: 4px;
+  }
+
+  .btn-icon {
+    width: 28px;
+    height: 28px;
+  }
 }
