@@ -5,7 +5,6 @@ import {
   Trash2,
   Plus,
   Search,
-  Check,
   X
 } from "lucide-react";
 
@@ -33,12 +32,6 @@ export default function App() {
   const [editId, setEditId] = useState(null);
   const [toast, setToast] = useState(null);
 
-  const [editKatId, setEditKatId] = useState(null);
-  const [editKatName, setEditKatName] = useState("");
-
-  const [editZnId, setEditZnId] = useState(null);
-  const [editZnName, setEditZnName] = useState("");
-
   // 🔥 LOAD + REALTIME
   useEffect(() => {
     loadData();
@@ -47,8 +40,8 @@ export default function App() {
       .channel("realtime")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public" },
-        () => loadData()
+        { event: "*", schema: "public", table: "sklad" },
+        loadData
       )
       .subscribe();
 
@@ -60,10 +53,15 @@ export default function App() {
     setTimeout(() => setToast(null), 2000);
   }
 
+  // 🔥 KLÍČOVÁ OPRAVA (JOIN)
   async function loadData() {
     const { data: sklad } = await supabase
       .from("sklad")
-      .select("*")
+      .select(`
+        *,
+        kategorie(name),
+        znacka(name)
+      `)
       .order("created_at", { ascending: false });
 
     const { data: kat } = await supabase.from("kategorie").select("*");
@@ -74,15 +72,7 @@ export default function App() {
     setZnacky(zn || []);
   }
 
-  function getKatName(id) {
-    return kategorie.find(k => k.id === id)?.name || "-";
-  }
-
-  function getZnName(id) {
-    return znacky.find(z => z.id === id)?.name || "-";
-  }
-
-  // 🔥 SAVE ITEM
+  // 🔥 SAVE
   async function saveItem() {
     if (!nazev) return;
 
@@ -109,8 +99,8 @@ export default function App() {
   function editItem(item) {
     setEditId(item.id);
     setNazev(item.nazev || "");
-    setKat(item.kategorie || "");
-    setZn(item.znacka || "");
+    setKat(item.kategorie?.id || "");
+    setZn(item.znacka?.id || "");
     setKs(item.ks || "");
     setCena(item.cena || "");
   }
@@ -121,7 +111,6 @@ export default function App() {
     showToast("Smazáno");
   }
 
-  // 🔥 KATEGORIE
   async function addKategorie() {
     if (!newKat) return;
     await supabase.from("kategorie").insert([{ name: newKat }]);
@@ -129,34 +118,11 @@ export default function App() {
     showToast("Kategorie přidána");
   }
 
-  async function updateKategorie(id) {
-    await supabase.from("kategorie").update({ name: editKatName }).eq("id", id);
-    setEditKatId(null);
-    showToast("Upraveno");
-  }
-
-  async function deleteKategorie(id) {
-    await supabase.from("kategorie").delete().eq("id", id);
-    showToast("Smazáno");
-  }
-
-  // 🔥 ZNAČKY
   async function addZnacka() {
     if (!newZn) return;
     await supabase.from("znacky").insert([{ name: newZn }]);
     setNewZn("");
     showToast("Značka přidána");
-  }
-
-  async function updateZnacka(id) {
-    await supabase.from("znacky").update({ name: editZnName }).eq("id", id);
-    setEditZnId(null);
-    showToast("Upraveno");
-  }
-
-  async function deleteZnacka(id) {
-    await supabase.from("znacky").delete().eq("id", id);
-    showToast("Smazáno");
   }
 
   function resetForm() {
@@ -247,11 +213,7 @@ export default function App() {
       <input placeholder="Ks" value={ks} onChange={e => setKs(e.target.value)} />
       <input placeholder="Cena" value={cena} onChange={e => setCena(e.target.value)} />
 
-      <button
-        className="btn-primary"
-        onClick={saveItem}
-        disabled={!nazev}
-      >
+      <button className="btn-primary" onClick={saveItem}>
         {editId ? "Uložit" : "Přidat"}
       </button>
 
@@ -261,9 +223,11 @@ export default function App() {
           <div key={item.id} className="list-item">
             <div>
               <strong>{item.nazev}</strong>
+
               <div className="muted">
-                {getKatName(item.kategorie)} • {getZnName(item.znacka)}
+                {item.kategorie?.name || "-"} • {item.znacka?.name || "-"}
               </div>
+
               <div className="muted">
                 {item.ks} ks • {item.cena} Kč
               </div>
