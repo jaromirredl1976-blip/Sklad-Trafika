@@ -37,11 +37,11 @@ export default function App() {
     loadData();
 
     const channel = supabase
-      .channel("realtime")
+      .channel("realtime-all")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "sklad" },
-        loadData
+        { event: "*", schema: "public" },
+        () => loadData()
       )
       .subscribe();
 
@@ -53,7 +53,7 @@ export default function App() {
     setTimeout(() => setToast(null), 2000);
   }
 
-  // 🔥 KLÍČOVÁ OPRAVA (JOIN)
+  // 🔥 LOAD DATA (JOIN)
   async function loadData() {
     const { data: sklad } = await supabase
       .from("sklad")
@@ -72,7 +72,7 @@ export default function App() {
     setZnacky(zn || []);
   }
 
-  // 🔥 SAVE
+  // 🔥 SAVE ITEM
   async function saveItem() {
     if (!nazev) return;
 
@@ -94,13 +94,14 @@ export default function App() {
     }
 
     resetForm();
+    loadData(); // 🔥 okamžitý refresh
   }
 
   function editItem(item) {
     setEditId(item.id);
     setNazev(item.nazev || "");
-    setKat(item.kategorie?.id || "");
-    setZn(item.znacka?.id || "");
+    setKat(item.kategorie || "");
+    setZn(item.znacka || "");
     setKs(item.ks || "");
     setCena(item.cena || "");
   }
@@ -109,20 +110,37 @@ export default function App() {
     if (!confirm("Smazat položku?")) return;
     await supabase.from("sklad").delete().eq("id", id);
     showToast("Smazáno");
+    loadData();
   }
 
+  // 🔥 KATEGORIE
   async function addKategorie() {
     if (!newKat) return;
     await supabase.from("kategorie").insert([{ name: newKat }]);
     setNewKat("");
     showToast("Kategorie přidána");
+    loadData();
   }
 
+  async function deleteKategorie(id) {
+    await supabase.from("kategorie").delete().eq("id", id);
+    showToast("Smazáno");
+    loadData();
+  }
+
+  // 🔥 ZNAČKY
   async function addZnacka() {
     if (!newZn) return;
     await supabase.from("znacky").insert([{ name: newZn }]);
     setNewZn("");
     showToast("Značka přidána");
+    loadData();
+  }
+
+  async function deleteZnacka(id) {
+    await supabase.from("znacky").delete().eq("id", id);
+    showToast("Smazáno");
+    loadData();
   }
 
   function resetForm() {
