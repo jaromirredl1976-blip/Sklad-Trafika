@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 
 const supabase = createClient(
-  "https://jqddbwciekvfppfdpivk.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxZGRid2NpZWt2ZnBwZmRwaXZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MjQyNTQsImV4cCI6MjA5MDQwMDI1NH0.lDdHLZ3WEl9N-K_tcS-UF8TFXwItPQSr83YB_Kk_cRo"
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_KEY
 );
 
 export default function App() {
@@ -31,7 +31,6 @@ export default function App() {
   const [newZn, setNewZn] = useState("");
 
   const [editId, setEditId] = useState(null);
-
   const [toast, setToast] = useState(null);
 
   const [editKatId, setEditKatId] = useState(null);
@@ -45,7 +44,11 @@ export default function App() {
 
     const channel = supabase
       .channel("realtime")
-      .on("postgres_changes", { event: "*", schema: "public" }, loadData)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "sklad" },
+        loadData
+      )
       .subscribe();
 
     return () => supabase.removeChannel(channel);
@@ -59,7 +62,8 @@ export default function App() {
   async function loadData() {
     const { data: sklad } = await supabase
       .from("sklad")
-      .select("*, kategorie(name), znacka(name)");
+      .select("*")
+      .order("created_at", { ascending: false });
 
     const { data: kat } = await supabase.from("kategorie").select("*");
     const { data: zn } = await supabase.from("znacky").select("*");
@@ -69,6 +73,14 @@ export default function App() {
     setZnacky(zn || []);
   }
 
+  function getKatName(id) {
+    return kategorie.find(k => k.id === id)?.name || "-";
+  }
+
+  function getZnName(id) {
+    return znacky.find(z => z.id === id)?.name || "-";
+  }
+
   async function saveItem() {
     if (!nazev) return;
 
@@ -76,14 +88,14 @@ export default function App() {
       nazev,
       kategorie: kat,
       znacka: zn,
-      ks: Number(ks),
-      cena: Number(cena)
+      ks: Number(ks) || 0,
+      cena: Number(cena) || 0
     };
 
     if (editId) {
       await supabase.from("sklad").update(payload).eq("id", editId);
-      setEditId(null);
       showToast("Uloženo");
+      setEditId(null);
     } else {
       await supabase.from("sklad").insert([payload]);
       showToast("Přidáno");
@@ -102,7 +114,7 @@ export default function App() {
   }
 
   async function deleteItem(id) {
-    if (!confirm("Smazat?")) return;
+    if (!confirm("Smazat položku?")) return;
     await supabase.from("sklad").delete().eq("id", id);
     showToast("Smazáno");
   }
@@ -228,11 +240,11 @@ export default function App() {
             <div>
               <strong>{item.nazev}</strong>
               <div className="muted">
-                {item.kategorie?.name} • {item.znacka?.name}
+                {getKatName(item.kategorie)} • {getZnName(item.znacka)}
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 6 }}>
+            <div className="actions">
               <button className="btn-icon btn-edit" onClick={() => editItem(item)}>
                 <Pencil size={16} />
               </button>
@@ -243,92 +255,6 @@ export default function App() {
           </div>
         ))}
       </div>
-
-      {/* KATEGORIE */}
-      <h2>Kategorie</h2>
-      {kategorie.map(k => (
-        <div key={k.id} className="list-item">
-          {editKatId === k.id ? (
-            <input value={editKatName} onChange={e => setEditKatName(e.target.value)} />
-          ) : (
-            <span>{k.name}</span>
-          )}
-
-          <div style={{ display: "flex", gap: 6 }}>
-            {editKatId === k.id ? (
-              <>
-                <button onClick={() => updateKategorie(k.id)}>
-                  <Check size={16} />
-                </button>
-                <button onClick={() => setEditKatId(null)}>
-                  <X size={16} />
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  className="btn-icon btn-edit"
-                  onClick={() => {
-                    setEditKatId(k.id);
-                    setEditKatName(k.name);
-                  }}
-                >
-                  <Pencil size={16} />
-                </button>
-                <button
-                  className="btn-icon btn-delete"
-                  onClick={() => deleteKategorie(k.id)}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      ))}
-
-      {/* ZNAČKY */}
-      <h2>Značky</h2>
-      {znacky.map(z => (
-        <div key={z.id} className="list-item">
-          {editZnId === z.id ? (
-            <input value={editZnName} onChange={e => setEditZnName(e.target.value)} />
-          ) : (
-            <span>{z.name}</span>
-          )}
-
-          <div style={{ display: "flex", gap: 6 }}>
-            {editZnId === z.id ? (
-              <>
-                <button onClick={() => updateZnacka(z.id)}>
-                  <Check size={16} />
-                </button>
-                <button onClick={() => setEditZnId(null)}>
-                  <X size={16} />
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  className="btn-icon btn-edit"
-                  onClick={() => {
-                    setEditZnId(z.id);
-                    setEditZnName(z.name);
-                  }}
-                >
-                  <Pencil size={16} />
-                </button>
-                <button
-                  className="btn-icon btn-delete"
-                  onClick={() => deleteZnacka(z.id)}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
