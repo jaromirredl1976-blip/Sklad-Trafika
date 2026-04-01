@@ -1,5 +1,5 @@
 {
-  "name": "sklad-trafika",
+  "name": "sklad-app",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,7 +11,7 @@
   "dependencies": {
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "@supabase/supabase-js": "^2.0.0"
+    "@supabase/supabase-js": "^2.0.0",
     "lucide-react": "^0.400.0"
   },
   "devDependencies": {
