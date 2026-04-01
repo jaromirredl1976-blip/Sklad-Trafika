@@ -39,6 +39,7 @@ export default function App() {
   const [editZnId, setEditZnId] = useState(null);
   const [editZnName, setEditZnName] = useState("");
 
+  // 🔥 LOAD + REALTIME
   useEffect(() => {
     loadData();
 
@@ -46,8 +47,8 @@ export default function App() {
       .channel("realtime")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "sklad" },
-        loadData
+        { event: "*", schema: "public" },
+        () => loadData()
       )
       .subscribe();
 
@@ -81,13 +82,14 @@ export default function App() {
     return znacky.find(z => z.id === id)?.name || "-";
   }
 
+  // 🔥 SAVE ITEM
   async function saveItem() {
     if (!nazev) return;
 
     const payload = {
       nazev,
-      kategorie: kat,
-      znacka: zn,
+      kategorie: kat || null,
+      znacka: zn || null,
       ks: Number(ks) || 0,
       cena: Number(cena) || 0
     };
@@ -106,11 +108,11 @@ export default function App() {
 
   function editItem(item) {
     setEditId(item.id);
-    setNazev(item.nazev);
-    setKat(item.kategorie);
-    setZn(item.znacka);
-    setKs(item.ks);
-    setCena(item.cena);
+    setNazev(item.nazev || "");
+    setKat(item.kategorie || "");
+    setZn(item.znacka || "");
+    setKs(item.ks || "");
+    setCena(item.cena || "");
   }
 
   async function deleteItem(id) {
@@ -119,18 +121,12 @@ export default function App() {
     showToast("Smazáno");
   }
 
+  // 🔥 KATEGORIE
   async function addKategorie() {
     if (!newKat) return;
     await supabase.from("kategorie").insert([{ name: newKat }]);
     setNewKat("");
     showToast("Kategorie přidána");
-  }
-
-  async function addZnacka() {
-    if (!newZn) return;
-    await supabase.from("znacky").insert([{ name: newZn }]);
-    setNewZn("");
-    showToast("Značka přidána");
   }
 
   async function updateKategorie(id) {
@@ -142,6 +138,14 @@ export default function App() {
   async function deleteKategorie(id) {
     await supabase.from("kategorie").delete().eq("id", id);
     showToast("Smazáno");
+  }
+
+  // 🔥 ZNAČKY
+  async function addZnacka() {
+    if (!newZn) return;
+    await supabase.from("znacky").insert([{ name: newZn }]);
+    setNewZn("");
+    showToast("Značka přidána");
   }
 
   async function updateZnacka(id) {
@@ -164,7 +168,12 @@ export default function App() {
   }
 
   const filtered = items.filter(i =>
-    i.nazev.toLowerCase().includes(search.toLowerCase())
+    (i.nazev || "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  const totalValue = items.reduce(
+    (sum, i) => sum + (i.ks || 0) * (i.cena || 0),
+    0
   );
 
   return (
@@ -172,6 +181,10 @@ export default function App() {
       <h1>Sklad</h1>
 
       {toast && <div className="toast">{toast}</div>}
+
+      <div className="stats">
+        💰 Hodnota skladu: {totalValue} Kč
+      </div>
 
       {/* SEARCH */}
       <div className="row">
@@ -181,6 +194,11 @@ export default function App() {
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
+        {search && (
+          <button onClick={() => setSearch("")}>
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       {/* FORM */}
@@ -229,7 +247,11 @@ export default function App() {
       <input placeholder="Ks" value={ks} onChange={e => setKs(e.target.value)} />
       <input placeholder="Cena" value={cena} onChange={e => setCena(e.target.value)} />
 
-      <button className="btn-primary" onClick={saveItem}>
+      <button
+        className="btn-primary"
+        onClick={saveItem}
+        disabled={!nazev}
+      >
         {editId ? "Uložit" : "Přidat"}
       </button>
 
@@ -241,6 +263,9 @@ export default function App() {
               <strong>{item.nazev}</strong>
               <div className="muted">
                 {getKatName(item.kategorie)} • {getZnName(item.znacka)}
+              </div>
+              <div className="muted">
+                {item.ks} ks • {item.cena} Kč
               </div>
             </div>
 
