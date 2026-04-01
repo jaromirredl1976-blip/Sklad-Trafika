@@ -1,16 +1,20 @@
-const CACHE_NAME = "sklad-v2";
+const CACHE_NAME = "sklad-v3";
 
-const ASSETS = [
+const STATIC_ASSETS = [
   "/",
   "/index.html",
-  "/manifest.json"
+  "/manifest.json",
+  "/icon-192.png",
+  "/icon-512.png"
 ];
 
 // 🔥 INSTALL
 self.addEventListener("install", event => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(STATIC_ASSETS);
+    })
   );
 });
 
@@ -30,16 +34,25 @@ self.addEventListener("activate", event => {
   self.clients.claim();
 });
 
-// 🔥 FETCH (offline fallback)
+// 🔥 FETCH
 self.addEventListener("fetch", event => {
+  // jen GET requesty
+  if (event.request.method !== "GET") return;
+
   event.respondWith(
-    fetch(event.request)
-      .then(res => {
-        return caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, res.clone());
-          return res;
+    caches.match(event.request).then(cached => {
+      if (cached) return cached;
+
+      return fetch(event.request)
+        .then(response => {
+          return caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, response.clone());
+            return response;
+          });
+        })
+        .catch(() => {
+          return caches.match("/index.html");
         });
-      })
-      .catch(() => caches.match(event.request))
+    })
   );
 });
