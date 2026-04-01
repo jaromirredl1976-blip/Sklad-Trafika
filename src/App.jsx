@@ -45,19 +45,15 @@ export default function App() {
 
     const channel = supabase
       .channel("realtime")
-      .on("postgres_changes", { event: "*", schema: "public" }, () => {
-        loadData();
-      })
+      .on("postgres_changes", { event: "*", schema: "public" }, loadData)
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => supabase.removeChannel(channel);
   }, []);
 
-  function showToast(text, type = "ok") {
-    setToast({ text, type });
-    setTimeout(() => setToast(null), 2500);
+  function showToast(text) {
+    setToast(text);
+    setTimeout(() => setToast(null), 2000);
   }
 
   async function loadData() {
@@ -84,19 +80,16 @@ export default function App() {
       cena: Number(cena)
     };
 
-    try {
-      if (editId) {
-        await supabase.from("sklad").update(payload).eq("id", editId);
-        setEditId(null);
-        showToast("Uloženo ✏️");
-      } else {
-        await supabase.from("sklad").insert([payload]);
-        showToast("Přidáno ✅");
-      }
-      resetForm();
-    } catch {
-      showToast("Chyba ❌", "err");
+    if (editId) {
+      await supabase.from("sklad").update(payload).eq("id", editId);
+      setEditId(null);
+      showToast("Uloženo");
+    } else {
+      await supabase.from("sklad").insert([payload]);
+      showToast("Přidáno");
     }
+
+    resetForm();
   }
 
   function editItem(item) {
@@ -111,7 +104,7 @@ export default function App() {
   async function deleteItem(id) {
     if (!confirm("Smazat?")) return;
     await supabase.from("sklad").delete().eq("id", id);
-    showToast("Smazáno 🗑️");
+    showToast("Smazáno");
   }
 
   async function addKategorie() {
@@ -166,10 +159,9 @@ export default function App() {
     <div className="container">
       <h1>Sklad</h1>
 
-      {toast && (
-        <div className={`toast ${toast.type}`}>{toast.text}</div>
-      )}
+      {toast && <div className="toast">{toast}</div>}
 
+      {/* SEARCH */}
       <div className="row">
         <Search size={18} />
         <input
@@ -179,6 +171,7 @@ export default function App() {
         />
       </div>
 
+      {/* FORM */}
       <input
         placeholder="Název"
         value={nazev}
@@ -239,7 +232,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="row">
+            <div style={{ display: "flex", gap: 6 }}>
               <button className="btn-icon btn-edit" onClick={() => editItem(item)}>
                 <Pencil size={16} />
               </button>
@@ -261,7 +254,7 @@ export default function App() {
             <span>{k.name}</span>
           )}
 
-          <div className="row">
+          <div style={{ display: "flex", gap: 6 }}>
             {editKatId === k.id ? (
               <>
                 <button onClick={() => updateKategorie(k.id)}>
@@ -273,13 +266,19 @@ export default function App() {
               </>
             ) : (
               <>
-                <button onClick={() => {
-                  setEditKatId(k.id);
-                  setEditKatName(k.name);
-                }}>
+                <button
+                  className="btn-icon btn-edit"
+                  onClick={() => {
+                    setEditKatId(k.id);
+                    setEditKatName(k.name);
+                  }}
+                >
                   <Pencil size={16} />
                 </button>
-                <button onClick={() => deleteKategorie(k.id)}>
+                <button
+                  className="btn-icon btn-delete"
+                  onClick={() => deleteKategorie(k.id)}
+                >
                   <Trash2 size={16} />
                 </button>
               </>
@@ -288,7 +287,7 @@ export default function App() {
         </div>
       ))}
 
-      {/* ZNACKY */}
+      {/* ZNAČKY */}
       <h2>Značky</h2>
       {znacky.map(z => (
         <div key={z.id} className="list-item">
@@ -298,7 +297,7 @@ export default function App() {
             <span>{z.name}</span>
           )}
 
-          <div className="row">
+          <div style={{ display: "flex", gap: 6 }}>
             {editZnId === z.id ? (
               <>
                 <button onClick={() => updateZnacka(z.id)}>
@@ -310,13 +309,19 @@ export default function App() {
               </>
             ) : (
               <>
-                <button onClick={() => {
-                  setEditZnId(z.id);
-                  setEditZnName(z.name);
-                }}>
+                <button
+                  className="btn-icon btn-edit"
+                  onClick={() => {
+                    setEditZnId(z.id);
+                    setEditZnName(z.name);
+                  }}
+                >
                   <Pencil size={16} />
                 </button>
-                <button onClick={() => deleteZnacka(z.id)}>
+                <button
+                  className="btn-icon btn-delete"
+                  onClick={() => deleteZnacka(z.id)}
+                >
                   <Trash2 size={16} />
                 </button>
               </>
